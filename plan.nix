@@ -111,7 +111,7 @@ pkgs.writeShellApplication {
       case "$(decide "$1" "$2")" in
         yes) return 0 ;;
         no) row "✓" "$1" "$3" "$([ -n "$2" ] && echo "off (option)" || echo "opted out ($choicef)")" ;;
-        *) row "•" "$1" "$3" "not installed · nix run from a terminal asks (or $1=yes|no in $choicef)" ;;
+        *) row "•" "$1" "$3" "no answer, left alone · nix run from a terminal asks (or $1=yes|no in $choicef)" ;;
       esac
       return 1
     }
