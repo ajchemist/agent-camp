@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths: &code
+      - "*.nix"
+      - "*.sh"
+      - flake.lock
+      - ci/**
+      - .github/workflows/ci.yml
+  pull_request:
+    paths: *code
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1" # once a week: the agents publish @latest daily
+
+jobs:
+  # Every output evaluates, the module builds a home on Linux, the
+  # ask/plan scripts pass shellcheck (writeShellApplication).
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - run: nix flake check --all-systems --no-build
+      - run: nix build .#checks.x86_64-linux.home .#ask .#plan
+      - run: bash -n ci/e2e-deploy.sh
+
+  # The real flow on a runner: claude, codex, pi and goose with their ACP
+  # adapters, and herdr; each must run afterwards. A second deploy must be a
+  # no-op that still succeeds, and the plan must read the result.
+  deploy:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - name: Deploy onto the runner
+        run: ./ci/e2e-deploy.sh
+      - name: Re-deploy (idempotent)
+        run: ./ci/e2e-deploy.sh
+      - name: Plan
+        run: PATH="$AGENT_CAMP_PATH" nix run .#plan
