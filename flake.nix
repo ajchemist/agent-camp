@@ -20,6 +20,15 @@
       user = "fixture";
       modules = [{ home-manager.sharedModules = [ self.homeModules.default ciSettings ]; }];
     };
+    hostChecks = system: import ./checks.nix {
+      pkgs = nixpkgs.legacyPackages.${system};
+      mkHome = modules: basecamp.lib.mkHome {
+        inherit system modules; user = "fixture";
+        homeDirectory = if nixpkgs.lib.hasSuffix "darwin" system then "/Users/fixture" else "/home/fixture";
+      };
+      module = self.homeModules.default;
+      inherit ciSettings;
+    };
   in {
     homeModules.default = ./module.nix;
     homeModules.agent-camp = ./module.nix;
@@ -39,9 +48,12 @@
       plan = self.lib.plan { inherit pkgs; inherit (ciSettings.agent-camp) agents herdr; };
     });
 
+    # `home`: the module in a real Home Manager / nix-darwin build. The rest
+    # (checks.nix) catch at build time what would otherwise first fail on a
+    # deploy host. CI runs all of them before it deploys.
     checks = {
-      x86_64-linux.home = linuxHome.activationPackage;
-      aarch64-darwin.home = darwin.config.home-manager.users.fixture.home.activationPackage;
+      x86_64-linux = { home = linuxHome.activationPackage; } // hostChecks "x86_64-linux";
+      aarch64-darwin = { home = darwin.config.home-manager.users.fixture.home.activationPackage; } // hostChecks "aarch64-darwin";
     };
   };
 }

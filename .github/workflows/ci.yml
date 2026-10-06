@@ -16,22 +16,36 @@ on:
     - cron: "0 3 * * 1" # once a week: the agents publish @latest daily
 
 jobs:
-  # Every output evaluates, the module builds a home on Linux, the
-  # ask/plan scripts pass shellcheck (writeShellApplication).
-  lint:
-    runs-on: ubuntu-latest
+  # Everything that can fail on a host is checked here first, on both
+  # systems, before anything is deployed: every output evaluates, then each
+  # system builds all of its checks (checks.nix): the module in a real
+  # Home Manager / nix-darwin build, shellcheck over the generated
+  # activation steps, the answer-file logic, what is installed by default,
+  # and the ask/plan scripts.
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@v23
-      - run: nix flake check --all-systems --no-build
-      - run: nix build .#checks.x86_64-linux.home .#ask .#plan
-      - run: bash -n ci/e2e-deploy.sh
+      - name: Evaluate all outputs
+        run: nix flake check --all-systems --no-build
+      - name: Build this system's checks
+        run: nix flake check -L
+      - name: Helpers parse
+        run: |
+          bash -n ci/e2e-deploy.sh
+          python3 -m py_compile ci/acp-initialize.py
 
-  # The real flow on a runner: claude, codex, pi and goose with their ACP
-  # adapters, and herdr; each must run afterwards. A second deploy must be a
-  # no-op that still succeeds, and the plan must read the result.
+  # The real flow on a runner, only after both systems passed: claude,
+  # codex, pi and goose with their ACP adapters, and herdr; each must run,
+  # and each ACP agent must complete initialize.
+  # A second deploy must succeed as a no-op, and the plan must read the result.
   deploy:
-    needs: lint
+    needs: check
     strategy:
       fail-fast: false
       matrix:
@@ -42,6 +56,8 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v23
       - name: Deploy onto the runner
         run: ./ci/e2e-deploy.sh
+      - name: Each ACP agent answers initialize
+        run: PATH="$AGENT_CAMP_PATH" python3 ci/acp-initialize.py
       - name: Re-deploy (idempotent)
         run: ./ci/e2e-deploy.sh
       - name: Plan

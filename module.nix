@@ -188,7 +188,7 @@ in
 
       # PATH is scoped to these commands only: exporting it would leak /usr/bin
       # into later HM steps, which then pick BSD readlink over GNU (`-e` fails).
-      home.activation.herdrPlugins = lib.hm.dag.entryAfter [ "installPackages" ] ''
+      home.activation.herdrPlugins = lib.mkIf (cfg.herdr.plugins != [ ]) (lib.hm.dag.entryAfter [ "installPackages" ] ''
         installed="$(PATH="${pluginPath}:$PATH" herdr plugin list 2>/dev/null || true)"
         ${lib.concatMapStringsSep "\n" (p: ''
           if ! printf '%s' "$installed" | grep -qF "github:${p.repo}@${p.rev}]"; then
@@ -196,7 +196,7 @@ in
               || echo "herdr plugin ${p.id}: install failed (see above); rest of the switch continues, rerun later" >&2
           fi
         '') cfg.herdr.plugins}
-      '';
+      '');
 
       # Integration hooks let a restarted herdr server resume each agent's own
       # session instead of leaving a dead pane. One per agent whose CLI is

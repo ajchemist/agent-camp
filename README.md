@@ -90,11 +90,19 @@ goose's download-script binary, and a hand-installed `~/.local/bin/herdr`.
 
 `.github/workflows/ci.yml` runs on Ubuntu and macOS:
 
-- **lint**: every output evaluates; the Linux home builds; the scripts pass
-  shellcheck.
-- **deploy**: claude, codex, pi and goose, each with its adapter, plus herdr,
-  are deployed onto the runner with `lib.ciSettings`. Every command must run.
-  A second deploy must succeed, then the plan reads the result.
+- **check**: every output evaluates. Then each system builds all of its
+  checks (`checks.nix`) before anything is deployed:
+  - the module in a real Home Manager / nix-darwin build;
+  - shellcheck over the activation steps it generates;
+  - the answer-file logic (`choice.sh`);
+  - that importing the module alone installs no agent and no herdr, and
+    that an unknown agent is refused;
+  - the ask and plan scripts.
+- **deploy**: runs only after both systems pass check. claude, codex, pi and
+  goose, each with its adapter, plus herdr, are deployed onto the runner with
+  `lib.ciSettings`. Every command must run, and each ACP agent must complete
+  initialize (`ci/acp-initialize.py`). A second deploy must succeed, then the
+  plan reads the result.
 
 emacs-camp's CI deploys the same set and drives each adapter through
 agent-shell.

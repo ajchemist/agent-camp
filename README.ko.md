@@ -86,10 +86,17 @@ hermes의 node shim, uv standalone 바이너리, fnm node 아래의 전역 npm �
 
 `.github/workflows/ci.yml`은 Ubuntu와 macOS에서 실행됩니다.
 
-- **lint**: 모든 output이 평가되고, Linux home이 빌드되고, 스크립트가 shellcheck를
-  통과하는지 확인합니다.
-- **deploy**: `lib.ciSettings`로 claude, codex, pi, goose와 각각의 어댑터, herdr를
-  runner에 배포합니다. 모든 명령이 실행되어야 합니다. 두 번째 배포도 성공해야 하고,
-  그 결과를 plan이 읽습니다.
+- **check**: 모든 output이 평가되는지 확인합니다. 그다음 무엇이든 배포하기 전에,
+  시스템마다 자기 check(`checks.nix`)를 전부 빌드합니다.
+  - 실제 Home Manager / nix-darwin 빌드 안에서의 모듈
+  - 모듈이 생성하는 activation 단계에 대한 shellcheck
+  - 답 파일 로직(`choice.sh`)
+  - 모듈만 import하면 에이전트도 herdr도 설치되지 않는지, 알 수 없는
+    에이전트는 거부되는지
+  - ask, plan 스크립트
+- **deploy**: 두 시스템 모두 check를 통과해야 실행됩니다. `lib.ciSettings`로
+  claude, codex, pi, goose와 각각의 어댑터, herdr를 runner에 배포합니다. 모든 명령이
+  실행되어야 하고, 각 ACP 에이전트가 initialize를 마쳐야 합니다
+  (`ci/acp-initialize.py`). 두 번째 배포도 성공해야 하고, 그 결과를 plan이 읽습니다.
 
 emacs-camp CI도 같은 구성을 배포한 뒤 각 어댑터를 agent-shell로 구동해 봅니다.
