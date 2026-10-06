@@ -1,0 +1,22 @@
+name: Update briefing
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # daily, 09:00 KST
+  workflow_dispatch:
+
+jobs:
+  # A table of every CLI agent-camp tracks against its upstream, in the run summary.
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - name: Briefing
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          nix eval --json --file agents.nix > "$RUNNER_TEMP/agents.json"
+          goose=$(nix eval --raw --impure --expr \
+            '(builtins.getFlake (toString ./.)).inputs.basecamp.inputs.nixpkgs.legacyPackages.x86_64-linux.goose-cli.version')
+          python3 ci/updates.py "$RUNNER_TEMP/agents.json" "$goose" | tee -a "$GITHUB_STEP_SUMMARY"
