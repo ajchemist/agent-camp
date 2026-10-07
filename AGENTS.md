@@ -1,13 +1,15 @@
 ## Agent skills
 
 Skills live once, in `.agents/skills/`, which every agent that honours it
-reads; `.claude/skills` is a symlink to it for Claude Code. They are pinned
+reads. They are pinned
 in `skills-lock.json` and not committed: restore them with
 `bunx skills experimental_install`, update with `bunx skills update -p`.
 
 The engineering skills ([mattpocock/skills](https://github.com/mattpocock/skills))
 and [ponytail](https://github.com/DietrichGebert/ponytail) are both pinned there
-and also enabled as Claude Code plugins in `.claude/settings.json`.
+for the other agents. Claude Code gets them as plugins instead
+(`.claude/settings.json`), so there is no `.claude/skills` link: with one,
+every skill would show up twice.
 
 ### Issue tracker
 

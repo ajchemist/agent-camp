@@ -3,3 +3,5 @@
 /.agents/skills/
 # nix build output link
 /result
+# Claude Code takes these skills as plugins; a link here would list each twice
+/.claude/skills
