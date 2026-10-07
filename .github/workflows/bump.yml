@@ -1,0 +1,90 @@
+name: Bump
+
+# An approved update ticket becomes a bump PR (docs/adr/0001). The version and hashes come from
+# ci/bump.py; an agent steps in only when CI fails on the bump.
+# Runs when a ticket is labelled `approved`, and is dispatched by the daily briefing when
+# upstream moves under an approved ticket.
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: Pinned tool to bump
+        type: choice
+        options: [bun, herdr]
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: write
+  actions: write  # GITHUB_TOKEN pushes start no workflows; ci.yml is dispatched instead
+
+concurrency: bump-${{ inputs.tool || github.event.issue.number }}
+
+jobs:
+  bump:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'update'))
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      HAS_AGENT: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Which tool
+        id: tool
+        env:
+          LABELS: ${{ toJSON(github.event.issue.labels.*.name) }}
+        run: |
+          tool='${{ inputs.tool }}'
+          [ -n "$tool" ] || tool=$(jq -r '.[] | select(startswith("update:")) | ltrimstr("update:")' <<<"$LABELS")
+          issue=$(gh issue list --state open --label update --label "update:$tool" --json number --jq '.[0].number')
+          echo "tool=$tool" >> "$GITHUB_OUTPUT"
+          echo "issue=$issue" >> "$GITHUB_OUTPUT"
+      - name: Bump and push
+        id: bump
+        run: |
+          tool=${{ steps.tool.outputs.tool }} issue=${{ steps.tool.outputs.issue }}
+          version=$(python3 ci/bump.py "$tool")
+          if [ -z "$version" ]; then echo "$tool is already current"; exit 0; fi
+          branch="update/$tool"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git commit -qam "$tool: $version"
+          git push -f origin "$branch"
+          title="Bump $tool to $version"
+          body="Closes #$issue"$'\n\n'"Version and hashes by \`ci/bump.py\`."
+          pr=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then gh pr edit "$pr" --title "$title" --body "$body"
+          else gh pr create --head "$branch" --title "$title" --body "$body"; fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+      - name: CI
+        if: steps.bump.outputs.branch
+        run: |
+          branch=${{ steps.bump.outputs.branch }}
+          gh workflow run ci.yml --ref "$branch"
+          sleep 15  # the dispatched run takes a moment to be listed
+          id=$(gh run list --workflow ci.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
+          gh run watch "$id" --exit-status
+      # Needs the CLAUDE_CODE_OAUTH_TOKEN secret; without it a red bump PR waits for a human.
+      - name: Agent fixes CI
+        id: agent
+        if: failure() && steps.bump.outputs.branch && env.HAS_AGENT == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            CI (.github/workflows/ci.yml) fails on branch ${{ steps.bump.outputs.branch }}, which bumps
+            ${{ steps.tool.outputs.tool }} with ci/bump.py. Read the failed run's logs
+            (`gh run list --workflow ci.yml --branch ${{ steps.bump.outputs.branch }}`), fix the cause
+            on this branch, commit and `git push origin HEAD:${{ steps.bump.outputs.branch }}`.
+            No Co-authored-by trailers. If the fix is beyond a small change, comment on the PR
+            explaining what breaks instead.
+          claude_args: --allowedTools "Bash,Read,Edit,Write"
+      - name: CI again
+        if: failure() && steps.agent.outcome == 'success'
+        run: gh workflow run ci.yml --ref "${{ steps.bump.outputs.branch }}"

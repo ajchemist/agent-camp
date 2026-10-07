@@ -20,7 +20,8 @@ The daily briefing (`ci/updates.py`) already compares every tool with upstream. 
 
 ## Open defaults (not asked; change freely)
 
-- Agent auth: a `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`) repo secret.
+- Agent auth: the `CLAUDE_CODE_OAUTH_TOKEN` repo secret. Without it a red bump PR simply waits for a human.
+- The repo setting "Allow GitHub Actions to create and approve pull requests" is on (needed for `gh pr create` with `GITHUB_TOKEN`).
 - Bump PR branch: `update/<tool>`, force-pushed when upstream moves again, so there is one PR per ticket.
 - Workflow token needs `issues: write`, `contents: write`, `pull-requests: write`, `actions: write`.
 - CI on bump PRs: a PR opened with `GITHUB_TOKEN` fires no `pull_request` run, so the workflow runs `gh workflow run ci.yml --ref update/<tool>` (dispatch is exempt from that rule). The result lands on the head commit and shows on the PR. No PAT or App needed.

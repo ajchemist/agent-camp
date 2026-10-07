@@ -1,0 +1,8 @@
+name: Request
+description: A bug, a feature, or a change to discuss before any code is written.
+body:
+  - type: textarea
+    attributes:
+      label: What and why
+    validations:
+      required: true
