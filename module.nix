@@ -165,6 +165,10 @@ in
           if [ "$(decide ${a.bin}-acp '${forced (opt a.bin).acp}')" = yes ]; then
             run ${bun}/bin/bun add -g ${a.acp.pkg}@latest \
               || echo "agent-camp ${a.bin}-acp: bun add -g ${a.acp.pkg}@latest failed (see above); rest of the switch continues" >&2
+            ${lib.concatMapStringsSep "\n" (was: ''
+              [ ! -d "$HOME/.bun/install/global/node_modules/${a.acp.pkg}" ] || [ ! -d "$HOME/.bun/install/global/node_modules/${was}" ] \
+                || run ${bun}/bin/bun remove -g ${was}
+            '') (a.acp.was or [ ])}
           fi
         '') (lib.filter (a: a.acp != null) agents)}
         if [ "$(decide claude '${forced (opt "claude").enable}')" = yes ] && [ -x "$HOME/.bun/bin/claude" ]; then

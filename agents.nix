@@ -11,12 +11,15 @@
 #                restarted herdr resumes the agent's session; null = no target
 #   acp          ACP adapter (how editors such as Emacs' agent-shell talk to
 #                the agent), installed with `bun add -g`; null = none needed
-#                (goose and kimi speak ACP themselves: `goose acp`, `kimi acp`)
+#                (goose and kimi speak ACP themselves: `goose acp`, `kimi acp`);
+#                acp.was: earlier package names of the same bin, removed once
+#                the current one is in (both linking one bin, the last
+#                `bun add` wins)
 [
   { bin = "claude"; pkg = "@anthropic-ai/claude-code"; via = "bun"; integration = "claude";
     acp = { bin = "claude-agent-acp"; pkg = "@agentclientprotocol/claude-agent-acp"; }; }
   { bin = "codex"; pkg = "@openai/codex"; via = "bun"; integration = "codex";
-    acp = { bin = "codex-acp"; pkg = "@zed-industries/codex-acp"; }; }
+    acp = { bin = "codex-acp"; pkg = "@agentclientprotocol/codex-acp"; was = [ "@zed-industries/codex-acp" ]; }; }
   { bin = "pi"; pkg = "@earendil-works/pi-coding-agent"; via = "bun"; integration = "pi";
     acp = { bin = "pi-acp"; pkg = "pi-acp"; }; }
   { bin = "omp"; pkg = "@oh-my-pi/pi-coding-agent"; via = "bun"; integration = "omp"; acp = null; }
