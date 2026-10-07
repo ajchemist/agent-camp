@@ -6,8 +6,8 @@ in `skills-lock.json` and not committed: restore them with
 `bunx skills experimental_install`, update with `bunx skills update -p`.
 
 The engineering skills ([mattpocock/skills](https://github.com/mattpocock/skills))
-and [ponytail](https://github.com/DietrichGebert/ponytail) are Claude Code
-plugins enabled for this project in `.claude/settings.json`.
+and [ponytail](https://github.com/DietrichGebert/ponytail) are both pinned there
+and also enabled as Claude Code plugins in `.claude/settings.json`.
 
 ### Issue tracker
 
