@@ -1,3 +1,5 @@
 
 # Skills installed from skills-lock.json (bunx skills experimental_install)
 /.agents/skills/
+# nix build output link
+/result
