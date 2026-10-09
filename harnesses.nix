@@ -1,4 +1,4 @@
-# The agents agent-camp knows (data, imported by module.nix, the ask script and
+# The harnesses (coding-agent CLIs) agent-camp knows (data, imported by module.nix, the ask script and
 # the plan). Each releases most days, so nothing is pinned: nixpkgs lags and a
 # pinned version would be stale the day after. Installed from the agent's own
 # registry, `<pkg>@latest` on every switch (a no-op when current).

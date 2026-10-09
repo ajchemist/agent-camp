@@ -1,25 +1,27 @@
-# Home Manager module for agent-camp: coding-agent CLIs, their ACP adapters,
-# herdr, and the bun/fnm/uv runtime they need. Importing it installs that
-# runtime and nothing else: an agent or adapter is installed only when the
-# host answered yes (~/.config/agent-camp/agents, see choice.sh and the ask
+# Home Manager module for agent-camp: harnesses (coding-agent CLIs), their ACP
+# adapters, herdr, and the bun/fnm/uv runtime they need. Importing it installs
+# that runtime and nothing else: a harness or adapter is installed only when the
+# host answered yes (~/.config/agent-camp/harnesses, see choice.sh and the ask
 # script in flake.nix) or the downstream forces it with the options below.
 { lib, config, pkgs, ... }:
 
 let
   cfg = config.agent-camp;
-  agents = import ./agents.nix;
+  harnesses = import ./harnesses.nix;
   bun = import ./bun.nix { inherit pkgs; };
   herdr = import ./herdr.nix { inherit pkgs; };
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
 
   # null = the choice file decides; true/false = forced. As the shell sees it.
   forced = v: if v == null then "" else if v then "yes" else "no";
-  opt = bin: cfg.agents.${bin} or { enable = null; acp = null; };
+  opt = bin: cfg.harnesses.${bin} or { enable = null; acp = null; };
 
-  # Only `via = "nix"` agents need the answer at eval time (home.packages).
+  # Only `via = "nix"` harnesses need the answer at eval time (home.packages).
   # The file is read under impure evaluation (the downstream's apps); pure
   # evaluation (flake check) has no builtins.currentSystem and reads nothing.
-  choiceFile = "${config.home.homeDirectory}/.config/agent-camp/agents";
+  # Before the rename it was ~/.config/agent-camp/agents; the ask script moves it.
+  choiceFile = let d = "${config.home.homeDirectory}/.config/agent-camp"; in
+    if builtins.pathExists "${d}/harnesses" then "${d}/harnesses" else "${d}/agents";
   choices = if builtins ? currentSystem && builtins.pathExists choiceFile
     then lib.splitString "\n" (builtins.readFile choiceFile) else [ ];
   wants = a: let e = (opt a.bin).enable; in
@@ -39,25 +41,27 @@ let
     + lib.optionalString isDarwin ":/usr/bin:/bin";
 in
 {
+  imports = [ (lib.mkRenamedOptionModule [ "agent-camp" "agents" ] [ "agent-camp" "harnesses" ]) ];
+
   options.agent-camp = {
-    agents = lib.mkOption {
+    harnesses = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {
         options = {
           enable = lib.mkOption {
             type = lib.types.nullOr lib.types.bool;
             default = null;
-            description = "Install this agent CLI. null: the host's answer in ~/.config/agent-camp/agents (<bin>=yes|no); no answer means not installed.";
+            description = "Install this harness. null: the host's answer in ~/.config/agent-camp/harnesses (<bin>=yes|no); no answer means not installed.";
           };
           acp = lib.mkOption {
             type = lib.types.nullOr lib.types.bool;
             default = null;
-            description = "Install this agent's ACP adapter (agents.nix). null: the host's answer (<bin>-acp=yes|no); no answer means not installed.";
+            description = "Install this harness's ACP adapter (harnesses.nix). null: the host's answer (<bin>-acp=yes|no); no answer means not installed.";
           };
         };
       });
       default = { };
       example = lib.literalExpression ''{ claude = { enable = true; acp = true; }; }'';
-      description = "Per-agent overrides of the host's answers, keyed by bin (agents.nix).";
+      description = "Per-harness overrides of the host's answers, keyed by bin (harnesses.nix).";
     };
     herdr = {
       enable = lib.mkEnableOption "herdr (release binary), its plugins, and an integration hook per installed agent";
@@ -78,20 +82,20 @@ in
   config = lib.mkMerge [
     {
       assertions = [{
-        assertion = lib.all (b: lib.any (a: a.bin == b) agents) (lib.attrNames cfg.agents);
-        message = "agent-camp.agents: unknown agent (known: ${lib.concatMapStringsSep ", " (a: a.bin) agents})";
+        assertion = lib.all (b: lib.any (a: a.bin == b) harnesses) (lib.attrNames cfg.harnesses);
+        message = "agent-camp.harnesses: unknown harness (known: ${lib.concatMapStringsSep ", " (a: a.bin) harnesses})";
       }];
 
       home.packages = [
-        # The agents release daily and want the newest bun (omp: `Bun runtime
+        # The harnesses release daily and want the newest bun (omp: `Bun runtime
         # must be >= 1.3.14`), so bun is pinned ahead of nixpkgs in bun.nix.
         bun
         # node is not optional: the codex/pi launchers and the ACP adapters are
         # `#!/usr/bin/env node` scripts. It comes from fnm (one LTS, see fnmNode).
         pkgs.fnm
-        # `uv tool install` for the PyPI-only agents (kimi).
+        # `uv tool install` for the PyPI-only harnesses (kimi).
         pkgs.uv
-      ] ++ map (a: pkgs.${a.pkg}) (lib.filter (a: a.via == "nix" && wants a) agents)
+      ] ++ map (a: pkgs.${a.pkg}) (lib.filter (a: a.via == "nix" && wants a) harnesses)
         ++ lib.optional cfg.herdr.enable herdr;
 
       # One fnm root on every OS (fnm would pick ~/Library/Application Support
@@ -116,7 +120,7 @@ in
       # bun and uv are nix's now. Copies earlier installers left would shadow
       # or confuse them: the hand-installed ~/.bun/bin/bun (+ bunx, completions),
       # ~/.nvm, fnm's pre-FNM_DIR root, hermes' node shims, uv's standalone
-      # binaries. ~/.bun/install/global stays: the agents live there.
+      # binaries. ~/.bun/install/global stays: the harnesses live there.
       home.activation.runtimeLeftovers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         if [ -f "$HOME/.bun/bin/bun" ] && [ ! -L "$HOME/.bun/bin/bun" ]; then
           run rm -v "$HOME/.bun/bin/bun"
@@ -134,7 +138,7 @@ in
         true
       '';
 
-      # The agents and adapters the host said yes to (or the options force).
+      # The harnesses and adapters the host said yes to (or the options force).
       # `<pkg>@latest` every switch: installs when missing, upgrades when
       # behind, no-op when current — never an older version over a hand
       # `bun update -g`. Copies from other installers are superseded and go:
@@ -154,13 +158,13 @@ in
               echo "agent-camp ${a.bin}: bun add -g ${a.pkg}@latest failed (see above); rest of the switch continues" >&2
             fi
           fi
-        '') (lib.filter (a: a.via == "bun") agents)}
+        '') (lib.filter (a: a.via == "bun") harnesses)}
         ${lib.concatMapStringsSep "\n" (a: ''
           if [ "$(decide ${a.bin} '${forced (opt a.bin).enable}')" = yes ]; then
             run ${pkgs.uv}/bin/uv tool install ${a.pkg}@latest \
               || echo "agent-camp ${a.bin}: uv tool install ${a.pkg}@latest failed (see above); rest of the switch continues" >&2
           fi
-        '') (lib.filter (a: a.via == "uv") agents)}
+        '') (lib.filter (a: a.via == "uv") harnesses)}
         ${lib.concatMapStringsSep "\n" (a: ''
           if [ "$(decide ${a.bin}-acp '${forced (opt a.bin).acp}')" = yes ]; then
             run ${bun}/bin/bun add -g ${a.acp.pkg}@latest \
@@ -170,7 +174,7 @@ in
                 || run ${bun}/bin/bun remove -g ${was}
             '') (a.acp.was or [ ])}
           fi
-        '') (lib.filter (a: a.acp != null) agents)}
+        '') (lib.filter (a: a.acp != null) harnesses)}
         if [ "$(decide claude '${forced (opt "claude").enable}')" = yes ] && [ -x "$HOME/.bun/bin/claude" ]; then
           case "$(readlink "$HOME/.local/bin/claude" 2>/dev/null)" in
             "$HOME"/.local/share/claude/versions/*) run rm -v "$HOME/.local/bin/claude"; run rm -rf "$HOME/.local/share/claude" ;;
@@ -220,7 +224,7 @@ in
           run ${herdr}/bin/herdr integration install "$tgt" \
             || echo "herdr integration $tgt: install failed (see above); rest of the switch continues" >&2
         }
-        ${lib.concatMapStringsSep "\n" (a: "hook ${a.integration} ${a.bin}") (lib.filter (a: a.integration != null) agents)}
+        ${lib.concatMapStringsSep "\n" (a: "hook ${a.integration} ${a.bin}") (lib.filter (a: a.integration != null) harnesses)}
       '';
     })
   ];

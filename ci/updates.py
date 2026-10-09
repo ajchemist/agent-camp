@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Daily update briefing: one Markdown table of every CLI agent-camp tracks.
 
-Usage: updates.py <agents.json> <goose nixpkgs version> [--tickets]
+Usage: updates.py <harnesses.json> <goose nixpkgs version> [--tickets]
 @latest tools (npm, PyPI) have nothing pinned: the row says what the next
 switch installs. Pinned tools (bun, herdr, goose via flake.lock) are compared.
 --tickets keeps one update ticket per pinned tool (docs/adr/0001).
@@ -38,7 +38,7 @@ def age(ts):
     return "today" if days == 0 else f"{days}d ago"
 
 def main():
-    agents, goose_nix = json.load(open(sys.argv[1])), sys.argv[2]
+    harnesses, goose_nix = json.load(open(sys.argv[1])), sys.argv[2]
     rows = []  # (tool, source, current, latest, released, status)
 
     def row(tool, source, current, fetch):
@@ -55,7 +55,7 @@ def main():
         rows.append((tool, source, current, latest, age(ts), status))
         return latest
 
-    for a in agents:
+    for a in harnesses:
         if a["via"] == "bun":
             row(a["bin"], f"npm `{a['pkg']}`", "@latest", lambda p=a["pkg"]: npm(p))
         elif a["via"] == "uv":

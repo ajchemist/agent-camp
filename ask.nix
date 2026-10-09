@@ -1,5 +1,5 @@
-# Asks which agents and ACP adapters this host wants, once each, and records
-# the answers in ~/.config/agent-camp/agents (choice.sh). Run it from the
+# Asks which harnesses and ACP adapters this host wants, once each, and records
+# the answers in ~/.config/agent-camp/harnesses (choice.sh). Run it from the
 # downstream's `nix run` app before the build: Home Manager activation has no
 # terminal (nix-darwin runs it through `launchctl asuser`). One gum checklist
 # for everything undecided, nothing preselected: an unticked item is recorded
@@ -9,7 +9,7 @@
 
 let
   inherit (pkgs) lib;
-  data = import ./agents.nix;
+  data = import ./harnesses.nix;
   items = lib.concatMap (a:
     lib.optional (a.pkg != null) "${a.bin}  ${a.via}: ${a.pkg}"
     ++ lib.optional (a.acp != null) "${a.bin}-acp  bun: ${a.acp.pkg} (ACP adapter, for editors)") data;
@@ -19,8 +19,14 @@ pkgs.writeShellApplication {
   runtimeInputs = [ pkgs.gum ];
   text = ''
     ${builtins.readFile ./choice.sh}
-    choice="$HOME/.config/agent-camp/agents"
-    mkdir -p "$(dirname "$choice")"; touch "$choice"
+    choice="$HOME/.config/agent-camp/harnesses"
+    mkdir -p "$(dirname "$choice")"
+    # The answer file was ~/.config/agent-camp/agents before harnesses were named.
+    if [ -f "$HOME/.config/agent-camp/agents" ] && [ ! -e "$choice" ]; then
+      mv "$HOME/.config/agent-camp/agents" "$choice"
+      echo "agent-camp: moved ~/.config/agent-camp/agents to $choice" >&2
+    fi
+    touch "$choice"
     undecided=()
     for a in ${lib.escapeShellArgs items}; do
       case "$(agent_choice "''${a%% *}")" in yes|no) ;; *) undecided+=("$a") ;; esac

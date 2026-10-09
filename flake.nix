@@ -9,10 +9,10 @@
     systems = [ "x86_64-linux" "aarch64-darwin" ];
     forAll = f: nixpkgs.lib.genAttrs systems (s: f nixpkgs.legacyPackages.${s});
 
-    # What CI deploys: the four representative agents with their adapters
+    # What CI deploys: the four representative harnesses with their adapters
     # (goose speaks ACP itself), and herdr.
     ciSettings = {
-      agent-camp.agents = nixpkgs.lib.genAttrs [ "claude" "codex" "pi" "goose" ] (_: { enable = true; acp = true; });
+      agent-camp.harnesses = nixpkgs.lib.genAttrs [ "claude" "codex" "pi" "goose" ] (_: { enable = true; acp = true; });
       agent-camp.herdr.enable = true;
     };
     linuxHome = basecamp.lib.mkHome { user = "fixture"; modules = [ self.homeModules.default ciSettings ]; };
@@ -36,16 +36,16 @@
     lib = {
       # `ask { pkgs }`: the checklist a downstream app runs before its build.
       ask = import ./ask.nix;
-      # `plan { pkgs; agents; herdr; }`: read-only status rows, given the
+      # `plan { pkgs; harnesses; herdr; }`: read-only status rows, given the
       # same agent-camp settings the downstream sets in its module.
       plan = import ./plan.nix;
-      agents = import ./agents.nix;
+      harnesses = import ./harnesses.nix;
       inherit ciSettings;
     };
 
     packages = forAll (pkgs: {
       ask = self.lib.ask { inherit pkgs; };
-      plan = self.lib.plan { inherit pkgs; inherit (ciSettings.agent-camp) agents herdr; };
+      plan = self.lib.plan { inherit pkgs; inherit (ciSettings.agent-camp) harnesses herdr; };
     });
 
     # `home`: the module in a real Home Manager / nix-darwin build. The rest
