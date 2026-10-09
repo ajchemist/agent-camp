@@ -22,4 +22,4 @@ Status: accepted (2026-10-07). Adopted from [abue-ammar/tinycast](https://github
 The gate is meant for every repo the maintainer runs. It ships in two parts, neither in agent-camp:
 
 - **Reusable workflows** for the gate and the co-author check live once in the public repo `ajchemist/.github`, versioned by tag. Each repo calls them with a few `uses: ajchemist/.github/...@v1` lines and per-repo inputs (`docs-paths`, `approval-label`). A fix lands once and reaches every repo. `pull_request_target` callers pass their event context and permissions to the called workflow, so the gate works unchanged.
-- **A skill** in `ajchemist/skills` (pinned per repo through `skills-lock.json`) explores a target repo and writes the caller lines, PR template, CONTRIBUTING section and `approved` label to fit it. It never copies the gate logic.
+- **A skill** in `ajchemist/skills` (a user-scope skill since ADR 0004, not pinned per repo) explores a target repo and writes the caller lines, PR template, CONTRIBUTING section and `approved` label to fit it. It never copies the gate logic.
