@@ -1,8 +1,7 @@
 # Read-only status of what module.nix manages, one row per thing. Built by
 # the downstream with the same settings it gives the module (harnesses, herdr),
 # since the plan runs before any evaluation of the host's home.
-# `agents` is the pre-rename name of `harnesses`, still accepted.
-{ pkgs, agents ? { }, harnesses ? agents, herdr ? { } }:
+{ pkgs, harnesses ? { }, herdr ? { } }:
 
 let
   herdr' = { enable = false; plugins = [ ]; } // herdr;
@@ -20,7 +19,6 @@ pkgs.writeShellApplication {
     row() { printf '  [%s] %-13s %-48s %s\n' "$@"; }
     lookup="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.nix-profile/bin:/etc/profiles/per-user/$(id -un)/bin:/opt/homebrew/bin:/usr/local/bin"
     choicef="$HOME/.config/agent-camp/harnesses"
-    [ -f "$choicef" ] || [ ! -f "$HOME/.config/agent-camp/agents" ] || choicef="$HOME/.config/agent-camp/agents"
 
     if bunbin="$(PATH="$lookup" command -v bun 2>/dev/null)"; then
       case "$(realpath "$bunbin")" in

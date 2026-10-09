@@ -38,10 +38,8 @@ uv가 설치됩니다. 각 하네스와 각 어댑터는 호스트마다 다음 
 
 1. downstream이 Nix 옵션을 설정했다면 그 값을 따릅니다:
    `agent-camp.harnesses.<bin>.enable`, `agent-camp.harnesses.<bin>.acp`(`true`/`false`).
-   이름을 바꾸기 전의 `agent-camp.agents`도 경고와 함께 계속 동작합니다.
 2. 옵션이 없으면 `~/.config/agent-camp/harnesses`에 적힌 호스트의 답을 따릅니다
-   (`claude=yes`, `claude-acp=no`처럼 한 줄에 하나). 예전 `~/.config/agent-camp/agents`는
-   ask 스크립트가 한 번 이 경로로 옮깁니다.
+   (`claude=yes`, `claude-acp=no`처럼 한 줄에 하나).
 3. 답이 없으면 설치하지 않습니다.
 
 답은 `agent-camp-ask`(`lib.ask`)가 받습니다. downstream의 `nix run` 앱이 빌드

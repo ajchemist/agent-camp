@@ -22,9 +22,7 @@ let
   # Only `via = "nix"` harnesses need the answer at eval time (home.packages).
   # The file is read under impure evaluation (the downstream's apps); pure
   # evaluation (flake check) has no builtins.currentSystem and reads nothing.
-  # Before the rename it was ~/.config/agent-camp/agents; the ask script moves it.
-  choiceFile = let d = "${config.home.homeDirectory}/.config/agent-camp"; in
-    if builtins.pathExists "${d}/harnesses" then "${d}/harnesses" else "${d}/agents";
+  choiceFile = "${config.home.homeDirectory}/.config/agent-camp/harnesses";
   choices = if builtins ? currentSystem && builtins.pathExists choiceFile
     then lib.splitString "\n" (builtins.readFile choiceFile) else [ ];
   wants = a: let e = (opt a.bin).enable; in
@@ -44,8 +42,6 @@ let
     + lib.optionalString isDarwin ":/usr/bin:/bin";
 in
 {
-  imports = [ (lib.mkRenamedOptionModule [ "agent-camp" "agents" ] [ "agent-camp" "harnesses" ]) ];
-
   options.agent-camp = {
     harnesses = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {

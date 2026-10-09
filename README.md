@@ -39,10 +39,9 @@ node, and uv. Each harness and each adapter is then decided per host:
 
 1. A Nix option, if the downstream set one:
    `agent-camp.harnesses.<bin>.enable` and `agent-camp.harnesses.<bin>.acp`
-   (`true`/`false`). The pre-rename `agent-camp.agents` still works, with a warning.
+   (`true`/`false`).
 2. Otherwise the host's answer in `~/.config/agent-camp/harnesses`
-   (`claude=yes`, `claude-acp=no`, one per line). The ask script moves a
-   pre-rename `~/.config/agent-camp/agents` there once.
+   (`claude=yes`, `claude-acp=no`, one per line).
 3. No answer: not installed.
 
 The answers come from `agent-camp-ask` (`lib.ask`), a checklist that a

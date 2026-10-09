@@ -20,13 +20,7 @@ pkgs.writeShellApplication {
   text = ''
     ${builtins.readFile ./choice.sh}
     choice="$HOME/.config/agent-camp/harnesses"
-    mkdir -p "$(dirname "$choice")"
-    # The answer file was ~/.config/agent-camp/agents before harnesses were named.
-    if [ -f "$HOME/.config/agent-camp/agents" ] && [ ! -e "$choice" ]; then
-      mv "$HOME/.config/agent-camp/agents" "$choice"
-      echo "agent-camp: moved ~/.config/agent-camp/agents to $choice" >&2
-    fi
-    touch "$choice"
+    mkdir -p "$(dirname "$choice")"; touch "$choice"
     undecided=()
     for a in ${lib.escapeShellArgs items}; do
       case "$(agent_choice "''${a%% *}")" in yes|no) ;; *) undecided+=("$a") ;; esac

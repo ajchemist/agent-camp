@@ -31,15 +31,13 @@ in
     touch $out
   '';
 
-  # choice.sh: no file, the pre-rename file, yes/no, last answer wins, a forced option wins.
+  # choice.sh: no file, yes/no, last answer wins, a forced option wins.
   choice = pkgs.runCommand "agent-camp-choice" { } ''
     export HOME=$PWD
     . ${./choice.sh}
     t() { [ "$1" = "$2" ] || { echo "FAIL: $3: got '$1', want '$2'"; exit 1; }; }
     t "$(decide claude "")" "" "no answer file"
     mkdir -p .config/agent-camp
-    echo pi=yes > .config/agent-camp/agents
-    t "$(decide pi "")" yes "pre-rename answer file read while harnesses is missing"
     printf 'claude=yes\ncodex=no\nclaude-acp=yes\nclaude=no\n' > .config/agent-camp/harnesses
     t "$(decide claude "")" no "last answer wins"
     t "$(decide codex "")" no "no"
@@ -56,7 +54,6 @@ in
       bareNames = names bare;
       ciNames = names ci;
       # Home Manager throws on a failed assertion; tryEval sees that.
-      renamed = (homeWith [{ agent-camp.agents.goose.enable = true; }]).agent-camp.harnesses.goose.enable;
       refused = !(builtins.tryEval (mkHome [ module { agent-camp.harnesses.nope.enable = true; } ]).activationPackage.drvPath).success;
     in
     assert lib.assertMsg (lib.all (n: lib.elem n bareNames) [ "bun" "fnm" "uv" ]) "runtime missing: ${toString bareNames}";
@@ -64,7 +61,6 @@ in
     assert lib.assertMsg (!(bare.home.activation ? herdrPlugins)) "herdr steps without herdr.enable";
     assert lib.assertMsg (lib.elem "goose-cli" ciNames && lib.elem "herdr" ciNames) "CI set incomplete: ${toString ciNames}";
     assert lib.assertMsg refused "unknown harness accepted";
-    assert lib.assertMsg renamed "agent-camp.agents no longer reaches agent-camp.harnesses";
     pkgs.runCommand "agent-camp-defaults" { } "touch $out";
 
   # Curated agents: ponytail lands for claude and codex by default, kimi only
