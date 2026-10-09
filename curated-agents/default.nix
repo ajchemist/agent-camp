@@ -16,28 +16,30 @@ in
     ponytail = import ./ponytail { inherit pkgs; };
   };
 
-  # harness -> { default; file = name: home-relative path; render = name: agent: home.file entry }
+  # harness -> { default; file = name: home-relative path; render = name: agent: store file;
+  #   copy = true: placed as a regular file, not a home.file symlink }
   adapters = {
     claude = {
       default = true;
       file = name: ".claude/agents/${name}.md";
-      render = name: a: { text = frontmatter name a + a.prompt; };
+      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + a.prompt);
     };
     codex = {
       default = true;
       file = name: ".codex/agents/${name}.toml";
-      render = name: a: {
-        source = (pkgs.formats.toml { }).generate "${name}.toml" {
-          inherit name;
-          inherit (a) description;
-          developer_instructions = a.prompt;
-        };
+      # Codex skips an agent file that is a symlink ("agent type is currently
+      # not available", codex-cli 0.160.1), so this one is copied.
+      copy = true;
+      render = name: a: (pkgs.formats.toml { }).generate "${name}.toml" {
+        inherit name;
+        inherit (a) description;
+        developer_instructions = a.prompt;
       };
     };
     kimi = {
       default = false;
       file = name: ".agents/agents/${name}.md";
-      render = name: a: { text = frontmatter name a + "\${base_prompt}\n\n" + a.prompt; };
+      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + "\${base_prompt}\n\n" + a.prompt);
     };
   };
 }

@@ -9,6 +9,11 @@ let
   cfg = config.agent-camp;
   harnesses = import ./harnesses.nix;
   curated = import ./curated-agents { inherit pkgs; };
+  # Every curated agent file to place: { path (home-relative), src, copy }.
+  curatedFiles = lib.concatLists (lib.mapAttrsToList (name: a:
+    lib.optionals cfg.curated-agents.${name}.enable (lib.concatLists (lib.mapAttrsToList (h: ad:
+      lib.optional cfg.curated-agents.${name}.harnesses.${h} { path = ad.file name; src = ad.render name a; copy = ad.copy or false; }
+    ) curated.adapters))) curated.agents);
   skillSources = import ./skill-sources { inherit pkgs; };
   wantedSkills = lib.filterAttrs (_: o: o.enable) cfg.skills;
   bun = import ./bun.nix { inherit pkgs; };
@@ -127,11 +132,27 @@ in
         ++ lib.optional cfg.herdr.enable herdr;
 
       # Curated agents, one file per harness that wants each.
-      home.file = lib.mkMerge (lib.mapAttrsToList (name: a:
-        lib.mkIf cfg.curated-agents.${name}.enable (lib.mapAttrs' (h: ad:
-          lib.nameValuePair (ad.file name) (lib.mkIf cfg.curated-agents.${name}.harnesses.${h} (ad.render name a))
-        ) curated.adapters)
-      ) curated.agents);
+      home.file = lib.listToAttrs (map (p: lib.nameValuePair p.path { source = p.src; })
+        (lib.filter (p: !p.copy) curatedFiles));
+
+      # The adapters that need a regular file get a copy, read-only like the
+      # links. A copy an earlier switch placed and nothing wants now is removed.
+      home.activation.curatedAgentCopies = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
+        copies = lib.filter (p: p.copy) curatedFiles;
+      in ''
+        state="$HOME/.local/state/agent-camp/curated-copies"
+        wanted="${lib.concatMapStringsSep " " (p: p.path) copies}"
+        if [ -f "$state" ]; then
+          while IFS= read -r p; do
+            case " $wanted " in *" $p "*) ;; *) [ ! -f "$HOME/$p" ] || [ -L "$HOME/$p" ] || run rm -f "$HOME/$p" ;; esac
+          done < "$state"
+        fi
+        ${lib.concatMapStrings (p: ''
+          cmp -s ${p.src} "$HOME/${p.path}" || run install -D -m 0444 ${p.src} "$HOME/${p.path}"
+        '') copies}
+        run mkdir -p "$(dirname "$state")"
+        printf '%s\n' $wanted | run tee "$state" >/dev/null
+      '');
 
       # User-scope skills (skill-sources/): nix pins each source, the skills CLI
       # copies the skills to ~/.agents/skills and links them into each agent.

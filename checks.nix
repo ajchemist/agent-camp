@@ -15,7 +15,7 @@ let
 
   # Each agent-camp activation step as the switch runs it, with HM's `run`
   # (dry-run aware wrapper) stubbed, so shellcheck sees the generated shell.
-  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
+  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "curatedAgentCopies" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
   activationScript = c: pkgs.writeText "agent-camp-activation.sh" (''
     #!/usr/bin/env bash
     set -eu
@@ -68,16 +68,21 @@ in
   # is a file in the pinned upstream.
   curated =
     let
-      files = c: lib.filter (f: lib.hasSuffix "/ponytail.md" f || lib.hasSuffix "/ponytail.toml" f) (lib.attrNames c.home.file);
+      all = [ ".agents/agents/ponytail.md" ".claude/agents/ponytail.md" ".codex/agents/ponytail.toml" ];
+      # Linked through home.file, or copied by the curatedAgentCopies step.
+      files = c: lib.filter (f: c.home.file ? ${f} || lib.hasInfix "\"$HOME/${f}\"" c.home.activation.curatedAgentCopies.data) all;
+      curated = import ./curated-agents { inherit pkgs; };
+      rendered = lib.mapAttrsToList (_: ad: ad.render "ponytail" curated.agents.ponytail) curated.adapters;
       withKimi = homeWith [{ agent-camp.curated-agents.ponytail.harnesses.kimi = true; }];
       off = homeWith [{ agent-camp.curated-agents.ponytail.enable = false; }];
       want = [ ".claude/agents/ponytail.md" ".codex/agents/ponytail.toml" ];
     in
-    assert lib.assertMsg (lib.sort (a: b: a < b) (files bare) == want) "default curated files: ${toString (files bare)}";
+    assert lib.assertMsg (files bare == want) "default curated files: ${toString (files bare)}";
+    assert lib.assertMsg (!(bare.home.file ? ".codex/agents/ponytail.toml")) "codex agent is a symlink again (codex skips those)";
     assert lib.assertMsg (lib.elem ".agents/agents/ponytail.md" (files withKimi)) "kimi opt-in wrote nothing";
     assert lib.assertMsg (files off == [ ]) "disabled curated agent still installed: ${toString (files off)}";
     pkgs.runCommand "agent-camp-curated" { } ''
-      for f in ${bare.home.file.".claude/agents/ponytail.md".source} ${bare.home.file.".codex/agents/ponytail.toml".source} ${withKimi.home.file.".agents/agents/ponytail.md".source}; do
+      for f in ${toString rendered}; do
         paths=$(grep -o '/nix/store/[^ `"]*/SKILL.md' "$f" | sort -u)
         [ -n "$paths" ] || { echo "FAIL: no skill paths in $f"; exit 1; }
         for p in $paths; do [ -f "$p" ] || { echo "FAIL: $f names missing $p"; exit 1; }; done
