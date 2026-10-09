@@ -31,7 +31,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
-      HAS_AGENT: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+      HAS_AGENT: ${{ secrets.OMNIROUTE_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v7
       # Source-tree pins (ponytail, mattpocock-skills) hash with `nix flake prefetch`.
@@ -72,21 +72,32 @@ jobs:
           sleep 15  # the dispatched run takes a moment to be listed
           id=$(gh run list --workflow ci.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
           gh run watch "$id" --exit-status
-      # Needs the CLAUDE_CODE_OAUTH_TOKEN secret; without it a red bump PR waits for a human.
+      # pi on an OpenAI-compatible endpoint (OMNIROUTE_ENDPOINT, OMNIROUTE_API_KEY secrets);
+      # without them a red bump PR waits for a human.
+      - uses: oven-sh/setup-bun@v2
+        if: failure() && steps.bump.outputs.branch && env.HAS_AGENT == 'true'
       - name: Agent fixes CI
         id: agent
         if: failure() && steps.bump.outputs.branch && env.HAS_AGENT == 'true'
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
+        env:
+          OMNIROUTE_ENDPOINT: ${{ secrets.OMNIROUTE_ENDPOINT }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          MODEL: cx/gpt-6-luna
+          PROMPT: |
             CI (.github/workflows/ci.yml) fails on branch ${{ steps.bump.outputs.branch }}, which bumps
             ${{ steps.tool.outputs.tool }} with ci/bump.py. Read the failed run's logs
             (`gh run list --workflow ci.yml --branch ${{ steps.bump.outputs.branch }}`), fix the cause
             on this branch, commit and `git push origin HEAD:${{ steps.bump.outputs.branch }}`.
             No Co-authored-by trailers. If the fix is beyond a small change, comment on the PR
             explaining what breaks instead.
-          claude_args: --allowedTools "Bash,Read,Edit,Write"
+        run: |
+          bun add -g @earendil-works/pi-coding-agent
+          mkdir -p ~/.pi/agent
+          # apiKey stays a $NAME reference that pi resolves per request, so no key lands on disk.
+          jq -n --arg url "$OMNIROUTE_ENDPOINT" --arg model "$MODEL" \
+            '{providers: {omniroute: {baseUrl: $url, api: "openai-completions", apiKey: "$OMNIROUTE_API_KEY", models: [{id: $model}]}}}' \
+            > ~/.pi/agent/models.json
+          ~/.bun/bin/pi -p --no-session --provider omniroute --model "$MODEL" "$PROMPT"
       - name: CI again
         if: failure() && steps.agent.outcome == 'success'
         run: gh workflow run ci.yml --ref "${{ steps.bump.outputs.branch }}"
