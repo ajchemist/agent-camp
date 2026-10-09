@@ -53,6 +53,23 @@ herdr는 opt-in입니다. `agent-camp.herdr.enable = true`로 켜면 릴리스 �
 integration hook이 설치됩니다. hook이 있어야 herdr 서버를 다시 시작했을 때 각
 하네스의 세션이 이어집니다. herdr의 `config.toml`은 downstream이 관리합니다.
 
+## 큐레이션 에이전트
+
+agent-camp가 제공하는 서브에이전트 프로필입니다. 각각 `curated-agents/`에 원본이 하나씩 있고,
+하네스마다 변환되어 설치됩니다([ADR 0003](docs/adr/0003-curated-agents.md)).
+
+| 에이전트 | 설명 | 기본 하네스 |
+|---|---|---|
+| `ponytail` | [ponytail](https://github.com/DietrichGebert/ponytail)의 스킬을 스킬로 설치하지 않고, 고정된 store 경로에서 읽어 따르는 시니어 엔지니어 | claude, codex |
+
+```nix
+agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # ~/.agents/agents/ponytail.md도 설치
+agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지 않음
+```
+
+파일 위치: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
+kimi `~/.agents/agents/<name>.md`. pi는 본체에 서브에이전트가 없어서 아직 설치하지 않습니다.
+
 ## 사용법
 
 ```nix

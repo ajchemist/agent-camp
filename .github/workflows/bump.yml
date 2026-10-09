@@ -12,7 +12,7 @@ on:
       tool:
         description: Pinned tool to bump
         type: choice
-        options: [bun, herdr]
+        options: [bun, herdr, ponytail]
 
 permissions:
   contents: write
@@ -34,6 +34,8 @@ jobs:
       HAS_AGENT: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v7
+      # ponytail's hash comes from `nix flake prefetch`.
+      - uses: DeterminateSystems/nix-installer-action@v23
       - name: Which tool
         id: tool
         env:

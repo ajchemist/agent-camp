@@ -8,6 +8,7 @@
 let
   cfg = config.agent-camp;
   harnesses = import ./harnesses.nix;
+  curated = import ./curated-agents { inherit pkgs; };
   bun = import ./bun.nix { inherit pkgs; };
   herdr = import ./herdr.nix { inherit pkgs; };
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
@@ -77,6 +78,18 @@ in
         description = "herdr plugins, pinned by commit.";
       };
     };
+    curated-agents = lib.mapAttrs (name: _: {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install the ${name} curated agent (curated-agents/${name}) for the harnesses below.";
+      };
+      harnesses = lib.mapAttrs (h: ad: lib.mkOption {
+        type = lib.types.bool;
+        default = ad.default;
+        description = "Write the ${name} agent to ~/${ad.file name}.";
+      }) curated.adapters;
+    }) curated.agents;
   };
 
   config = lib.mkMerge [
@@ -97,6 +110,13 @@ in
         pkgs.uv
       ] ++ map (a: pkgs.${a.pkg}) (lib.filter (a: a.via == "nix" && wants a) harnesses)
         ++ lib.optional cfg.herdr.enable herdr;
+
+      # Curated agents, one file per harness that wants each.
+      home.file = lib.mkMerge (lib.mapAttrsToList (name: a:
+        lib.mkIf cfg.curated-agents.${name}.enable (lib.mapAttrs' (h: ad:
+          lib.nameValuePair (ad.file name) (lib.mkIf cfg.curated-agents.${name}.harnesses.${h} (ad.render name a))
+        ) curated.adapters)
+      ) curated.agents);
 
       # One fnm root on every OS (fnm would pick ~/Library/Application Support
       # on macOS), so activation, shells and plans name the same path. The

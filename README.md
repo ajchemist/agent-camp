@@ -56,6 +56,23 @@ integration hook for every installed harness that has one, so a restarted herdr
 server resumes each harness's session. herdr's own `config.toml` stays with the
 downstream.
 
+## Curated agents
+
+Subagent profiles agent-camp ships, one source each in `curated-agents/`,
+rendered per harness ([ADR 0003](docs/adr/0003-curated-agents.md)):
+
+| agent | what it is | default harnesses |
+|---|---|---|
+| `ponytail` | a senior engineer that reads [ponytail](https://github.com/DietrichGebert/ponytail)'s skills from a pinned store path, without installing them as skills | claude, codex |
+
+```nix
+agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # also ~/.agents/agents/ponytail.md
+agent-camp.curated-agents.ponytail.enable = false;         # or none at all
+```
+
+Files: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
+kimi `~/.agents/agents/<name>.md`. pi has no built-in subagents, so it gets none yet.
+
 ## Using it
 
 ```nix

@@ -3,6 +3,12 @@
 **Harness**: a coding-agent CLI agent-camp can install (claude, codex, pi, omp, goose, kimi, hermes), listed in `harnesses.nix`. The ACP adapter that lets an editor drive it is a separate answer.
 _Avoid_: agent (that word is for curated agents)
 
+**Curated agent**: a subagent profile agent-camp ships in `curated-agents/<name>/` and renders into each harness's agent dir. Installed by default for claude and codex.
+_Avoid_: preset, persona
+
+**Adapter**: the renderer in `curated-agents/default.nix` that turns one curated agent into one harness's agent file.
+_Avoid_: converter, generator
+
 **Pinned tool**: a tool whose version is written in this repo (`bun.nix`, `herdr.nix`, or nixpkgs through `flake.lock`). Moving it forward takes a commit.
 _Avoid_: locked tool, fixed tool
 
