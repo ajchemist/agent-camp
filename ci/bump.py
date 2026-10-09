@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Bump a pinned tool to upstream's latest release: version and every hash.
 
-Usage: bump.py <bun|herdr|ponytail>   (prints the new version, or nothing if already current)
+Usage: bump.py <bun|herdr|ponytail|mattpocock-skills>   (prints the new version, or nothing if already current)
 Hashes are the sha256 of each release asset, downloaded and converted to SRI.
-ponytail is a source tree (fetchFromGitHub): the release's commit, and the
-hash from `nix flake prefetch`, so that one needs nix on PATH.
+ponytail and mattpocock-skills are source trees (fetchFromGitHub): the release's commit, and the
+hash from `nix flake prefetch`, so those need nix on PATH.
 """
 import base64, hashlib, json, os, re, subprocess, sys, urllib.request
 
@@ -12,6 +12,7 @@ TOOLS = {  # file, repo, tag prefix, asset URL suffix (bun ships zips)
     "bun": ("bun.nix", "oven-sh/bun", "bun-v", ".zip"),
     "herdr": ("herdr.nix", "herdrdev/herdr", "v", ""),
     "ponytail": ("curated-agents/ponytail/source.nix", "DietrichGebert/ponytail", "v", None),
+    "mattpocock-skills": ("skill-sources/mattpocock-skills/source.nix", "mattpocock/skills", "v", None),
 }
 
 def fetch(url):

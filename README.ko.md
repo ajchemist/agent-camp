@@ -4,7 +4,8 @@
 
 agent-camp은 하네스(코딩 에이전트 CLI)와 그 ACP 어댑터, [herdr](https://herdr.dev)를
 [nix-basecamp](https://github.com/ajchemist/nix-basecamp) 위의 Home Manager
-모듈로 설치합니다. yes라고 답하지 않은 것은 아무것도 설치하지 않습니다.
+모듈로 설치합니다. yes라고 답하지 않은 하네스는 설치하지 않습니다. 하네스가 읽는
+파일일 뿐인 큐레이션 에이전트와 user scope 스킬은 기본으로 켜져 있고, 끌 수 있습니다.
 
 ```
 nix-basecamp   nixpkgs, Home Manager / nix-darwin 빌더
@@ -69,6 +70,42 @@ agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지
 
 파일 위치: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi는 본체에 서브에이전트가 없어서 아직 설치하지 않습니다.
+
+## User scope 스킬
+
+특정 저장소가 아니라 일하는 방식에 관한 스킬은 저장소마다 `skills-lock.json`이나
+플러그인 설정에 넣지 않고 user scope에 둡니다([ADR 0004](docs/adr/0004-user-scope-skills.md)).
+버전은 nix가 `skill-sources/<name>/source.nix`로 고정하고, 배치는
+[skills CLI](https://github.com/vercel-labs/skills)가 합니다.
+`skills add <store 경로> -g -a <agent>… -s <skill>…`가 각 스킬을 `~/.agents/skills`에
+복사하고 나머지 에이전트에 symlink를 겁니다(`claude-code`처럼 universal이 아닌
+에이전트만 고르면 그 디렉터리에 바로 복사합니다).
+
+| 소스 | 기본 스킬 | 기본 에이전트 |
+|---|---|---|
+| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | 사용자가 호출하는 16개(`disable-model-invocation: true`): grill-me, to-spec, to-tickets, handoff, … | `claude-code`, `codex` |
+
+```nix
+agent-camp.skills.mattpocock-skills.skills = [ "grill-me" "to-spec" ];       # 일부만
+agent-camp.skills.mattpocock-skills.agents = [ "claude-code" "codex" "kimi-code-cli" ];  # skills CLI의 agent ID
+agent-camp.skills.mattpocock-skills.enable = false;                          # 설치 안 함
+```
+
+모델이 스스로 부르는 스킬(tdd, diagnosing-bugs, code-review, …)은 user scope에 두면
+모든 세션의 스킬 목록에 들어가서 기본에서 뺐습니다. 원하면 `skills`에 추가하세요.
+
+**nix가 관리하는 것과 로컬에서 바꿀 수 있는 것**
+
+- switch는 소스의 고정 버전, 스킬 목록, 에이전트 목록 중 하나가 바뀔 때만 그 소스에
+  `skills add`를 다시 실행합니다(마지막 적용: `~/.local/state/agent-camp/skills/<name>`).
+  그 사이에는 설치된 사본을 로컬에서 바꿔도 됩니다.
+- 사본은 일부러 읽기 전용입니다. nix의 상태라는 표시입니다. 고치고 싶으면 그 자리에서
+  고치지 말고 가져가세요: GitHub에서 `bunx skills add <owner/repo> -g -s <skill>`
+  (이후 `bunx skills update -g`도 동작), 또는 `bunx skills remove -g <skill>` 후 직접 설치.
+- 그 소스에 다음 nix 변경(bump나 옵션 수정)이 오면 소스를 다시 추가하면서 **가져간 스킬을
+  고정 버전으로 덮어씁니다.** 계속 직접 관리하려면 `agent-camp.skills.<name>.skills`에서 빼세요.
+- store 경로에서 온 스킬이 목록에서 빠지면 지워집니다. 다른 소스에서 온 스킬(lock 파일의
+  `source`가 `/nix/store/…`가 아닌 것)은 건드리지 않습니다.
 
 ## 사용법
 

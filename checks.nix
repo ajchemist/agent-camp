@@ -15,7 +15,7 @@ let
 
   # Each agent-camp activation step as the switch runs it, with HM's `run`
   # (dry-run aware wrapper) stubbed, so shellcheck sees the generated shell.
-  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
+  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
   activationScript = c: pkgs.writeText "agent-camp-activation.sh" (''
     #!/usr/bin/env bash
     set -eu
@@ -87,6 +87,26 @@ in
         for p in $paths; do [ -f "$p" ] || { echo "FAIL: $f names missing $p"; exit 1; }; done
       done
       grep -q '^\''${base_prompt}' ${withKimi.home.file.".agents/agents/ponytail.md".source} || { echo "FAIL: kimi prompt lacks base_prompt"; exit 1; }
+      touch $out
+    '';
+
+  # User-scope skills: every default skill exists in its pinned source and is
+  # user-invoked (the reason it may sit in every harness); disabling a source
+  # leaves no `skills add` for it.
+  skills =
+    let
+      sources = (import ./skill-sources { inherit pkgs; }).sources;
+      off = homeWith [{ agent-camp.skills.mattpocock-skills.enable = false; }];
+      adds = c: lib.hasInfix "skills_cli add" c.home.activation.userSkills.data;
+    in
+    assert lib.assertMsg (adds bare) "default skills not added";
+    assert lib.assertMsg (!adds off) "disabled skill source still added";
+    pkgs.runCommand "agent-camp-skills" { } ''
+      ${lib.concatStrings (lib.mapAttrsToList (n: src: lib.concatMapStrings (k: ''
+        f=$(find ${src.src} -path "*/${k}/SKILL.md" | head -1)
+        [ -n "$f" ] || { echo "FAIL: ${n}: no ${k}/SKILL.md"; exit 1; }
+        grep -q '^disable-model-invocation: true' "$f" || { echo "FAIL: ${n}: ${k} is model-invoked"; exit 1; }
+      '') src.skills) sources)}
       touch $out
     '';
 

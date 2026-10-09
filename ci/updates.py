@@ -4,7 +4,7 @@
 Usage: updates.py <harnesses.json> <goose nixpkgs version> [--tickets]
 @latest tools (npm, PyPI) have nothing pinned: the row says what the next
 switch installs. Pinned tools (bun, herdr, the ponytail curated agent's upstream,
-goose via flake.lock) are compared.
+the user-scope skill sources, goose via flake.lock) are compared.
 --tickets keeps one update ticket per pinned tool (docs/adr/0001).
 """
 import json, os, re, subprocess, sys, urllib.request
@@ -32,6 +32,7 @@ def gh(repo, prefix):
     return d["tag_name"].removeprefix(prefix), d["published_at"]
 
 PONYTAIL = "curated-agents/ponytail/source.nix"
+MATTPOCOCK = "skill-sources/mattpocock-skills/source.nix"
 
 def pinned(path):
     return re.search(r'version = "([^"]+)"', open(path).read()).group(1)
@@ -72,6 +73,7 @@ def main():
         "bun": (pinned("bun.nix"), row("bun", "bun.nix (pinned)", pinned("bun.nix"), lambda: gh("oven-sh/bun", "bun-v"))),
         "herdr": (pinned("herdr.nix"), row("herdr", "herdr.nix (pinned)", pinned("herdr.nix"), lambda: gh("herdrdev/herdr", "v"))),
         "ponytail": (pinned(PONYTAIL), row("ponytail", "curated agent upstream (pinned)", pinned(PONYTAIL), lambda: gh("DietrichGebert/ponytail", "v"))),
+        "mattpocock-skills": (pinned(MATTPOCOCK), row("mattpocock-skills", "user-scope skills (pinned)", pinned(MATTPOCOCK), lambda: gh("mattpocock/skills", "v"))),
     }
 
     print(f"## agent-camp update briefing — {datetime.now(timezone.utc):%Y-%m-%d}\n")

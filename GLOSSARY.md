@@ -6,6 +6,9 @@ _Avoid_: agent (that word is for curated agents)
 **Curated agent**: a subagent profile agent-camp ships in `curated-agents/<name>/` and renders into each harness's agent dir. Installed by default for claude and codex.
 _Avoid_: preset, persona
 
+**User-scope skill**: a skill installed for the user, not for a repository: pinned in `skill-sources/<name>/`, laid out by the skills CLI into `~/.agents/skills` and each agent's dir. Its copy is nix's until you take it over; the next nix change to its source overwrites it again.
+_Avoid_: global skill, project skill (that is a repository's own)
+
 **Adapter**: the renderer in `curated-agents/default.nix` that turns one curated agent into one harness's agent file.
 _Avoid_: converter, generator
 

@@ -4,8 +4,9 @@ English · [한국어](README.ko.md)
 
 agent-camp installs harnesses (coding-agent CLIs), their ACP adapters, and
 [herdr](https://herdr.dev) through a Home Manager module on top of
-[nix-basecamp](https://github.com/ajchemist/nix-basecamp). It installs nothing
-you did not say yes to.
+[nix-basecamp](https://github.com/ajchemist/nix-basecamp). It installs no
+harness you did not say yes to. Curated agents and user-scope skills, which are
+only files for the harnesses, are on by default and can be switched off.
 
 ```
 nix-basecamp   nixpkgs, Home Manager / nix-darwin builders
@@ -72,6 +73,46 @@ agent-camp.curated-agents.ponytail.enable = false;         # or none at all
 
 Files: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi has no built-in subagents, so it gets none yet.
+
+## User-scope skills
+
+Skills that are about how you work, not about one repository, live at user
+scope instead of in each repository's `skills-lock.json` or plugin settings
+([ADR 0004](docs/adr/0004-user-scope-skills.md)). Nix pins each source in
+`skill-sources/<name>/source.nix`; the [skills CLI](https://github.com/vercel-labs/skills)
+lays them out: `skills add <store path> -g -a <agent>… -s <skill>…` copies each
+skill to `~/.agents/skills` and symlinks it into the other agents (with only
+non-universal agents such as `claude-code`, it copies straight into theirs).
+
+| source | default skills | default agents |
+|---|---|---|
+| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | the 16 user-invoked ones (`disable-model-invocation: true`): grill-me, to-spec, to-tickets, handoff, … | `claude-code`, `codex` |
+
+```nix
+agent-camp.skills.mattpocock-skills.skills = [ "grill-me" "to-spec" ];       # fewer
+agent-camp.skills.mattpocock-skills.agents = [ "claude-code" "codex" "kimi-code-cli" ];  # the skills CLI's agent IDs
+agent-camp.skills.mattpocock-skills.enable = false;                          # none
+```
+
+The model-invoked ones (tdd, diagnosing-bugs, code-review, …) are left out
+because at user scope they sit in every session's skill list; add them to
+`skills` if you want that.
+
+**What nix owns, and what you may change locally.**
+
+- A switch runs `skills add` for a source only when its pin, skill list or
+  agent list changed (last applied: `~/.local/state/agent-camp/skills/<name>`).
+  Between those changes the installed copies are yours to override.
+- The copies are read-only on purpose: they are nix's state. To change one,
+  take it over instead of editing in place: `bunx skills add <owner/repo> -g -s <skill>`
+  from GitHub (then `bunx skills update -g` works for it), or
+  `bunx skills remove -g <skill>` and install your own.
+- The next nix change to that source (a bump, or an edit to its options)
+  adds the source again and **overwrites your takeover** with the pinned
+  version. Take it out of `agent-camp.skills.<name>.skills` to keep yours.
+- Skills a store path put there that are no longer listed are removed.
+  Skills from any other source (the lock file's `source` is not `/nix/store/…`)
+  are never touched.
 
 ## Using it
 

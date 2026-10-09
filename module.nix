@@ -9,6 +9,8 @@ let
   cfg = config.agent-camp;
   harnesses = import ./harnesses.nix;
   curated = import ./curated-agents { inherit pkgs; };
+  skillSources = import ./skill-sources { inherit pkgs; };
+  wantedSkills = lib.filterAttrs (_: o: o.enable) cfg.skills;
   bun = import ./bun.nix { inherit pkgs; };
   herdr = import ./herdr.nix { inherit pkgs; };
   isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
@@ -90,6 +92,23 @@ in
         description = "Write the ${name} agent to ~/${ad.file name}.";
       }) curated.adapters;
     }) curated.agents;
+    skills = lib.mapAttrs (name: src: {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install skills from ${name} (skill-sources/${name}) at user scope with the skills CLI.";
+      };
+      skills = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = src.skills;
+        description = "Skill names to install from ${name}.";
+      };
+      agents = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "claude-code" "codex" ];
+        description = "Agents to link the skills into, as the skills CLI names them (`skills add --agent`).";
+      };
+    }) skillSources.sources;
   };
 
   config = lib.mkMerge [
@@ -117,6 +136,50 @@ in
           lib.nameValuePair (ad.file name) (lib.mkIf cfg.curated-agents.${name}.harnesses.${h} (ad.render name a))
         ) curated.adapters)
       ) curated.agents);
+
+      # User-scope skills (skill-sources/): nix pins each source, the skills CLI
+      # copies the skills to ~/.agents/skills and links them into each agent.
+      # A source is added again only when its pin, skills or agents change, so
+      # local changes last until then. Skills whose recorded source is a store
+      # path no longer wanted are removed; skills from anywhere else are left.
+      home.activation.userSkills = lib.hm.dag.entryAfter [ "agentClis" ] (let
+        jq = "${pkgs.jq}/bin/jq";
+        nixOwned = ''.skills | to_entries[] | select(.value.source | startswith("/nix/store/")) | .key'';
+      in ''
+        state="$HOME/.local/state/agent-camp/skills" lock="$HOME/.agents/.skill-lock.json"
+        skills_cli() { run env PATH="${bun}/bin:$HOME/.local/share/fnm/aliases/default/bin:$PATH" bun x ${skillSources.cli} "$@"; }
+        nix_owned() { [ -f "$lock" ] && ${jq} -r '${nixOwned}' "$lock" || true; }
+        mkdir -p "$state"
+        # drop NAMES...: remove those of NAMES the store put there, in one call.
+        drop() {
+          local s gone=()
+          for s in $(nix_owned); do case " $* " in *" $s "*) gone+=("$s") ;; esac; done
+          [ "''${#gone[@]}" -eq 0 ] || skills_cli remove -g -y "''${gone[@]}" \
+            || echo "agent-camp skills: could not remove ''${gone[*]} (see above)" >&2
+        }
+        wanted="${lib.concatStringsSep " " (lib.concatMap (o: o.skills) (lib.attrValues wantedSkills))}" unwanted=()
+        for s in $(nix_owned); do
+          case " $wanted " in *" $s "*) ;; *) unwanted+=("$s") ;; esac
+        done
+        [ "''${#unwanted[@]}" -eq 0 ] || drop "''${unwanted[@]}"
+        ${lib.concatStringsSep "
+" (lib.mapAttrsToList (name: o: let
+          src = skillSources.sources.${name}.src;
+          sig = "${src} ${lib.concatStringsSep "," o.agents} ${lib.concatStringsSep "," o.skills}";
+        in ''
+          if [ "$(cat "$state/${name}" 2>/dev/null || true)" != ${lib.escapeShellArg sig} ]; then
+            # Drop the old copies first, so an agent taken off the list loses its links.
+            drop ${lib.concatStringsSep " " o.skills}
+            if skills_cli add ${src} -g ${lib.concatMapStringsSep " " (a: "-a ${a}") o.agents} ${lib.concatMapStringsSep " " (k: "-s ${k}") o.skills} -y; then
+              echo ${lib.escapeShellArg sig} | run tee "$state/${name}" >/dev/null
+            else
+              echo "agent-camp skills ${name}: skills add failed (see above); retried next switch" >&2
+            fi
+          fi
+        '') wantedSkills)}
+        ${lib.concatMapStringsSep "
+" (n: ''rm -f "$state/${n}"'') (lib.attrNames (lib.filterAttrs (_: o: !o.enable) cfg.skills))}
+      '');
 
       # One fnm root on every OS (fnm would pick ~/Library/Application Support
       # on macOS), so activation, shells and plans name the same path. The
