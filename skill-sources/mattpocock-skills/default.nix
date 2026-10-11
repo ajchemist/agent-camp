@@ -1,13 +1,14 @@
-# mattpocock/skills at user scope: by default only the skills its plugin marks
-# `disable-model-invocation: true`. They cost no context until typed, so they
-# can sit in every harness; the model-invoked ones (tdd, grilling, …) are left
-# for a repository or a curated agent to choose.
+# Stable workflow skills belong at user scope, including the reusable skills
+# invoked by entry points such as grill-me, triage and implement.
 { pkgs }:
 (import ./source.nix { inherit pkgs; }) // {
   skills = [
-    "ask-matt" "grill-with-docs" "implement" "implement-spec"
-    "improve-codebase-architecture" "retro" "setup-matt-pocock-skills"
-    "to-spec" "to-tickets" "triage" "wayfinder"
-    "grill-me" "handoff" "teach" "to-questionnaire" "wait-what"
+    "ask-matt" "code-review" "codebase-design" "diagnosing-bugs"
+    "domain-modeling" "grill-with-docs" "implement" "implement-spec"
+    "improve-codebase-architecture" "pr" "prototype" "research" "retro"
+    "setup-matt-pocock-skills" "tdd" "to-spec" "to-tickets" "triage"
+    "wayfinder" "wizard"
+    "grill-me" "grilling" "handoff" "teach" "to-questionnaire" "wait-what"
+    "writing-for-agents"
   ];
 }

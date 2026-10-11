@@ -115,7 +115,7 @@ non-universal agents such as `claude-code`, it copies straight into theirs).
 
 | source | default skills | default agents |
 |---|---|---|
-| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | the 16 user-invoked ones (`disable-model-invocation: true`): grill-me, to-spec, to-tickets, handoff, … | `claude-code`, `codex` |
+| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | all 27 stable engineering/productivity skills, including grilling and other workflow dependencies | `claude-code`, `codex` |
 
 ```nix
 agent-camp.skills.mattpocock-skills.skills = [ "grill-me" "to-spec" ];       # fewer
@@ -123,9 +123,9 @@ agent-camp.skills.mattpocock-skills.agents = [ "claude-code" "codex" "kimi-code-
 agent-camp.skills.mattpocock-skills.enable = false;                          # none
 ```
 
-The model-invoked ones (tdd, diagnosing-bugs, code-review, …) are left out
-because at user scope they sit in every session's skill list; add them to
-`skills` if you want that.
+Reusable skills (grilling, tdd, domain-modeling, …) are included so workflow
+entry points can run. These model-invoked skills appear in every session's skill
+list. The Vercel skills CLI installs the pinned upstream files unchanged.
 
 **What nix owns, and what you may change locally.**
 
