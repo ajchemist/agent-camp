@@ -51,6 +51,14 @@ codex exec -C repo -s workspace-write --json "$t" < /dev/null > codex.jsonl
   --permission-mode acceptEdits < /dev/null > claude.jsonl)
 ```
 
+To test a changed `prompt.md` before switching, put it at project scope in the
+test repository (`.claude/agents/<name>.md`, with `@SKILLS@` replaced by the
+store path): project agents take precedence over `~/.claude/agents`. In `-p`
+runs, allow the test command on the command line
+(`--allowedTools 'Bash(<test cmd>:*)'`), or Verified comes back "not run"; an
+allow rule in the test repository's `.claude/settings.json` was not applied
+(2026-10-11).
+
 Check, for each harness:
 
 | question | codex | claude |
@@ -92,4 +100,10 @@ For ponytail this pass found:
 
 Rerun step 3 after each fix, and once with a task that should end in
 Info needed: tell the main agent to delegate it verbatim, so the subagent's
-stop, not the main agent's own question, is what gets tested.
+stop, not the main agent's own question, is what gets tested. After the
+answer, check that the main agent continued the same subagent (Claude Code: a
+`SendMessage` to it, not a second `Agent` call) and took its work over.
+Answer with `claude -p --resume <session-id> "<answers>"` and look for
+`"resumedAgentId"` in the SendMessage result. The continued subagent runs in
+the background, so the stream has two `result` events; the takeover (the main
+agent's own `git diff` / test run) comes after the first one.
