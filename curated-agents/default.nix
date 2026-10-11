@@ -15,6 +15,7 @@ in
 {
   agents = {
     ponytail = import ./ponytail { inherit pkgs; };
+    designer = import ./designer { inherit pkgs; };
   };
 
   # harness -> { default; file = name: home-relative path; render = name: agent: store file;
