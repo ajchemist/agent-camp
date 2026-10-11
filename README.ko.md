@@ -60,10 +60,11 @@ agent-camp가 제공하는 서브에이전트 프로필입니다. 각각 `curate
 | 에이전트 | 설명 | 기본 하네스 |
 |---|---|---|
 | `ponytail` | [ponytail](https://github.com/DietrichGebert/ponytail)의 스킬을 스킬로 설치하지 않고, 고정된 store 경로에서 읽어 따르는 시니어 엔지니어 | claude, codex |
+| `designer` | DESIGN.md를 기준으로 타이포그래피·간격·레이아웃·모션을 맡는 디자인 엔지니어. 네 모드(reference, direction, build, critique)로 일하고, [Emil Kowalski](https://github.com/emilkowalski/skills)·[Impeccable](https://github.com/pbakaus/impeccable)·[Taste](https://github.com/Leonxlnx/taste-skill)·[GSAP](https://github.com/greensock/gsap-skills) 스킬과 자체 스킬을 읽음([ADR 0005](docs/adr/0005-designer.md)) | claude, codex |
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # ~/.agents/agents/ponytail.md도 설치
-agent-camp.curated-agents.ponytail.replaceBuiltins = true; # 내장 코딩 서브에이전트도 대체 (kimi `coder`)
+agent-camp.curated-agents.ponytail.replaceBuiltins = true; # 내장 코딩 서브에이전트도 대체 (kimi `coder`), 에이전트 하나만
 agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지 않음
 ```
 

@@ -128,6 +128,10 @@ in
       assertions = [{
         assertion = lib.all (b: lib.any (a: a.bin == b) harnesses) (lib.attrNames cfg.harnesses);
         message = "agent-camp.harnesses: unknown harness (known: ${lib.concatMapStringsSep ", " (a: a.bin) harnesses})";
+      } {
+        # Each would write the same built-in's file.
+        assertion = lib.count (n: cfg.curated-agents.${n}.enable && cfg.curated-agents.${n}.replaceBuiltins) (lib.attrNames curated.agents) <= 1;
+        message = "agent-camp.curated-agents: replaceBuiltins is on for more than one agent; only one can take a built-in's place.";
       }];
 
       home.packages = [

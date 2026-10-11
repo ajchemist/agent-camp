@@ -3,7 +3,7 @@
 
 Usage: updates.py <harnesses.json> <goose nixpkgs version> [--tickets]
 @latest tools (npm, PyPI) have nothing pinned: the row says what the next
-switch installs. Pinned tools (bun, herdr, the ponytail curated agent's upstream,
+switch installs. Pinned tools (bun, herdr, the curated agents' upstreams,
 the user-scope skill sources, goose via flake.lock) are compared.
 --tickets keeps one update ticket per pinned tool (docs/adr/0001).
 """
@@ -31,7 +31,14 @@ def gh(repo, prefix):
     d = get(f"https://api.github.com/repos/{repo}/releases/latest")
     return d["tag_name"].removeprefix(prefix), d["published_at"]
 
+def head(repo):
+    """An upstream without releases: its default branch's head, as bump.py would pin it."""
+    d = get(f"https://api.github.com/repos/{repo}/commits/HEAD")
+    ts = d["commit"]["committer"]["date"]
+    return "0-unstable-" + ts[:10], ts
+
 PONYTAIL = "curated-agents/ponytail/source.nix"
+DESIGNER = "curated-agents/designer/sources/"
 MATTPOCOCK = "skill-sources/mattpocock-skills/source.nix"
 
 def pinned(path):
@@ -75,6 +82,12 @@ def main():
         "ponytail": (pinned(PONYTAIL), row("ponytail", "curated agent upstream (pinned)", pinned(PONYTAIL), lambda: gh("DietrichGebert/ponytail", "v"))),
         "mattpocock-skills": (pinned(MATTPOCOCK), row("mattpocock-skills", "user-scope skills (pinned)", pinned(MATTPOCOCK), lambda: gh("mattpocock/skills", "v"))),
     }
+    for name, repo, prefix in [("emil", "emilkowalski/skills", None), ("impeccable", "pbakaus/impeccable", "skill-v"),
+                               ("taste", "Leonxlnx/taste-skill", None), ("gsap", "greensock/gsap-skills", None)]:
+        current = pinned(f"{DESIGNER}{name}.nix")
+        latest = row(f"designer-{name}", "designer curated agent upstream (pinned)", current,
+                     (lambda r=repo: head(r)) if prefix is None else (lambda r=repo, p=prefix: gh(r, p)))
+        tickets[f"designer-{name}"] = (current, latest)
 
     print(f"## agent-camp update briefing — {datetime.now(timezone.utc):%Y-%m-%d}\n")
     print("| Tool | Source | Current | Latest | Released | Status |")

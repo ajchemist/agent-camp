@@ -64,10 +64,11 @@ rendered per harness ([ADR 0003](docs/adr/0003-curated-agents.md)):
 | agent | what it is | default harnesses |
 |---|---|---|
 | `ponytail` | a senior engineer that reads [ponytail](https://github.com/DietrichGebert/ponytail)'s skills from a pinned store path, without installing them as skills | claude, codex |
+| `designer` | a design engineer for typography, spacing, layout and motion through DESIGN.md, in four modes (reference, direction, build, critique); reads [Emil Kowalski](https://github.com/emilkowalski/skills), [Impeccable](https://github.com/pbakaus/impeccable), [Taste](https://github.com/Leonxlnx/taste-skill) and [GSAP](https://github.com/greensock/gsap-skills) skills plus its own ([ADR 0005](docs/adr/0005-designer.md)) | claude, codex |
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # also ~/.agents/agents/ponytail.md
-agent-camp.curated-agents.ponytail.replaceBuiltins = true; # also replace built-in coding subagents (kimi `coder`)
+agent-camp.curated-agents.ponytail.replaceBuiltins = true; # also replace built-in coding subagents (kimi `coder`); one agent at most
 agent-camp.curated-agents.ponytail.enable = false;         # or none at all
 ```
 

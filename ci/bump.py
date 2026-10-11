@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Bump a pinned tool to upstream's latest release: version and every hash.
 
-Usage: bump.py <bun|herdr|ponytail|mattpocock-skills>   (prints the new version, or nothing if already current)
+Usage: bump.py <tool>   (one of TOOLS; prints the new version, or nothing if already current)
 Hashes are the sha256 of each release asset, downloaded and converted to SRI.
-ponytail and mattpocock-skills are source trees (fetchFromGitHub): the release's commit, and the
-hash from `nix flake prefetch`, so those need nix on PATH.
+Source trees (fetchFromGitHub: ponytail, mattpocock-skills, the designer's upstreams) pin a commit
+and the hash from `nix flake prefetch`, so those need nix on PATH. An upstream without releases
+(tag prefix None) is tracked by its default branch's head, versioned 0-unstable-<commit date>.
 """
 import base64, hashlib, json, os, re, subprocess, sys, urllib.request
 
@@ -13,7 +14,16 @@ TOOLS = {  # file, repo, tag prefix, asset URL suffix (bun ships zips)
     "herdr": ("herdr.nix", "herdrdev/herdr", "v", ""),
     "ponytail": ("curated-agents/ponytail/source.nix", "DietrichGebert/ponytail", "v", None),
     "mattpocock-skills": ("skill-sources/mattpocock-skills/source.nix", "mattpocock/skills", "v", None),
+    "designer-emil": ("curated-agents/designer/sources/emil.nix", "emilkowalski/skills", None, None),
+    "designer-impeccable": ("curated-agents/designer/sources/impeccable.nix", "pbakaus/impeccable", "skill-v", None),
+    "designer-taste": ("curated-agents/designer/sources/taste.nix", "Leonxlnx/taste-skill", None, None),
+    "designer-gsap": ("curated-agents/designer/sources/gsap.nix", "greensock/gsap-skills", None, None),
 }
+
+def head(repo):
+    """An upstream without releases: its default branch's head commit and the version it pins as."""
+    c = json.loads(fetch(f"https://api.github.com/repos/{repo}/commits/HEAD"))
+    return c["sha"], "0-unstable-" + c["commit"]["committer"]["date"][:10]
 
 def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "agent-camp"})
@@ -26,13 +36,17 @@ def main():
     path, repo, prefix, ext = TOOLS[sys.argv[1]]
     src = open(path).read()
     current = re.search(r'version = "([^"]+)"', src).group(1)
-    tag = json.loads(fetch(f"https://api.github.com/repos/{repo}/releases/latest"))["tag_name"]
-    latest = tag.removeprefix(prefix)
+    if prefix is None:
+        rev, latest = head(repo)
+    else:
+        tag = json.loads(fetch(f"https://api.github.com/repos/{repo}/releases/latest"))["tag_name"]
+        latest = tag.removeprefix(prefix)
     if latest == current:
         return
     src = src.replace(f'version = "{current}"', f'version = "{latest}"', 1)
     if ext is None:  # source tree: pin the tag's commit
-        rev = json.loads(fetch(f"https://api.github.com/repos/{repo}/commits/{tag}"))["sha"]
+        if prefix is not None:
+            rev = json.loads(fetch(f"https://api.github.com/repos/{repo}/commits/{tag}"))["sha"]
         hash_ = json.loads(subprocess.run(["nix", "flake", "prefetch", "--json", f"github:{repo}/{rev}"],
                                           check=True, capture_output=True, text=True).stdout)["hash"]
         src = re.sub(r'rev = "[0-9a-f]{40}"', f'rev = "{rev}"', src)
