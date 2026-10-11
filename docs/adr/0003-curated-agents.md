@@ -8,6 +8,7 @@ agent-camp ships **curated agents**: subagent profiles a harness can delegate to
 - **Skills are read, not installed.** The prompt names the upstream `SKILL.md` files by their Nix store path, and the agent reads them as files. Installed skills would also reach the main agent, and a skill that hides itself from the model (`disable-model-invocation`) cannot be preloaded into a Claude Code subagent either.
 - **Pinned upstream.** `curated-agents/<name>/source.nix` pins the release's commit and hash (`fetchFromGitHub`). It is a pinned tool under ADR 0001: the briefing tracks it, an approved update ticket gets a bump PR from `ci/bump.py`.
 - **Opt-out, per harness.** `agent-camp.curated-agents.<name>.enable` defaults to true. `.harnesses.<harness>` picks where it lands: claude and codex default to true, the rest to false.
+- **Replacing built-ins, opt-in.** `.replaceBuiltins` also writes the agent under the name of each built-in coding subagent an adapter lists in `replaces` (kimi: `coder`, with `override: true`), keeping the built-in's description so delegation does not change. Read-only built-ins (explore, plan) are left alone.
 
 ## Considered options
 

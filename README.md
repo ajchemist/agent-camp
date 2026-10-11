@@ -67,6 +67,7 @@ rendered per harness ([ADR 0003](docs/adr/0003-curated-agents.md)):
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # also ~/.agents/agents/ponytail.md
+agent-camp.curated-agents.ponytail.replaceBuiltins = true; # also replace built-in coding subagents (kimi `coder`)
 agent-camp.curated-agents.ponytail.enable = false;         # or none at all
 ```
 

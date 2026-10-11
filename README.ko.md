@@ -63,6 +63,7 @@ agent-camp가 제공하는 서브에이전트 프로필입니다. 각각 `curate
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # ~/.agents/agents/ponytail.md도 설치
+agent-camp.curated-agents.ponytail.replaceBuiltins = true; # 내장 코딩 서브에이전트도 대체 (kimi `coder`)
 agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지 않음
 ```
 

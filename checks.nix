@@ -64,7 +64,8 @@ in
     pkgs.runCommand "agent-camp-defaults" { } "touch $out";
 
   # Curated agents: ponytail lands for claude and codex by default, kimi only
-  # when asked, nothing when disabled; every skill path in a rendered prompt
+  # when asked, nothing when disabled; kimi's built-in coder is replaced only
+  # with replaceBuiltins; every skill path in a rendered prompt
   # is a file in the pinned upstream.
   curated =
     let
@@ -75,12 +76,14 @@ in
       rendered = lib.mapAttrsToList (_: ad: ad.render "ponytail" curated.agents.ponytail) curated.adapters;
       withKimi = homeWith [{ agent-camp.curated-agents.ponytail.harnesses.kimi = true; }];
       off = homeWith [{ agent-camp.curated-agents.ponytail.enable = false; }];
+      kimiCoder = homeWith [{ agent-camp.curated-agents.ponytail = { harnesses.kimi = true; replaceBuiltins = true; }; }];
       want = [ ".claude/agents/ponytail.md" ".codex/agents/ponytail.toml" ];
     in
     assert lib.assertMsg (files bare == want) "default curated files: ${toString (files bare)}";
     assert lib.assertMsg (!(bare.home.file ? ".codex/agents/ponytail.toml")) "codex agent is a symlink again (codex skips those)";
     assert lib.assertMsg (lib.elem ".agents/agents/ponytail.md" (files withKimi)) "kimi opt-in wrote nothing";
     assert lib.assertMsg (files off == [ ]) "disabled curated agent still installed: ${toString (files off)}";
+    assert lib.assertMsg (!(withKimi.home.file ? ".agents/agents/coder.md")) "kimi coder replaced without replaceBuiltins";
     pkgs.runCommand "agent-camp-curated" { } ''
       for f in ${toString rendered}; do
         paths=$(grep -o '/nix/store/[^ `"]*/SKILL.md' "$f" | sort -u)
@@ -88,6 +91,8 @@ in
         for p in $paths; do [ -f "$p" ] || { echo "FAIL: $f names missing $p"; exit 1; }; done
       done
       grep -q '^\''${base_prompt}' ${withKimi.home.file.".agents/agents/ponytail.md".source} || { echo "FAIL: kimi prompt lacks base_prompt"; exit 1; }
+      f=${kimiCoder.home.file.".agents/agents/coder.md".source}
+      grep -q '^name: coder$' "$f" && grep -q '^override: true$' "$f" && grep -q '^\''${base_prompt}' "$f" || { echo "FAIL: kimi coder override malformed"; exit 1; }
       touch $out
     '';
 

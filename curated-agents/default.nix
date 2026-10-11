@@ -9,7 +9,8 @@
 { pkgs }:
 let
   inherit (pkgs) lib;
-  frontmatter = name: a: "---\nname: ${name}\ndescription: ${builtins.toJSON a.description}\n---\n\n";
+  frontmatter = name: a: "---\nname: ${name}\ndescription: ${builtins.toJSON a.description}\n"
+    + lib.optionalString (a.override or false) "override: true\n" + "---\n\n";
 in
 {
   agents = {
@@ -17,7 +18,9 @@ in
   };
 
   # harness -> { default; file = name: home-relative path; render = name: agent: store file;
-  #   copy = true: placed as a regular file, not a home.file symlink }
+  #   copy = true: placed as a regular file, not a home.file symlink;
+  #   replaces = { <built-in coding subagent> = its description; }: replaced by
+  #   the curated agent under that name when `replaceBuiltins` is on }
   adapters = {
     claude = {
       default = true;
@@ -39,6 +42,8 @@ in
     kimi = {
       default = false;
       file = name: ".agents/agents/${name}.md";
+      # Kimi keeps its built-in unless the file says `override: true`.
+      replaces.coder = "The default sub-agent, a general-purpose software engineering assistant that can read and write files, execute commands, search code, and land concrete changes.";
       render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + "\${base_prompt}\n\n" + a.prompt);
     };
   };

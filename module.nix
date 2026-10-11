@@ -9,10 +9,13 @@ let
   cfg = config.agent-camp;
   harnesses = import ./harnesses.nix;
   curated = import ./curated-agents { inherit pkgs; };
-  # Every curated agent file to place: { path (home-relative), src, copy }.
+  # Every curated agent file to place: { path (home-relative), src, copy }, plus
+  # one per built-in subagent it replaces (keeping the built-in's description).
   curatedFiles = lib.concatLists (lib.mapAttrsToList (name: a:
     lib.optionals cfg.curated-agents.${name}.enable (lib.concatLists (lib.mapAttrsToList (h: ad:
-      lib.optional cfg.curated-agents.${name}.harnesses.${h} { path = ad.file name; src = ad.render name a; copy = ad.copy or false; }
+      lib.optionals cfg.curated-agents.${name}.harnesses.${h} (map ({ n, agent }: { path = ad.file n; src = ad.render n agent; copy = ad.copy or false; })
+        ([{ n = name; agent = a; }] ++ lib.optionals cfg.curated-agents.${name}.replaceBuiltins
+          (lib.mapAttrsToList (b: description: { n = b; agent = a // { inherit description; override = true; }; }) (ad.replaces or { }))))
     ) curated.adapters))) curated.agents);
   skillSources = import ./skill-sources { inherit pkgs; };
   wantedSkills = lib.filterAttrs (_: o: o.enable) cfg.skills;
@@ -86,6 +89,11 @@ in
         type = lib.types.bool;
         default = true;
         description = "Install the ${name} curated agent (curated-agents/${name}) for the harnesses below.";
+      };
+      replaceBuiltins = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Also write the ${name} agent under the name of each built-in coding subagent of the harnesses below (adapter `replaces`, e.g. kimi `coder`), replacing it.";
       };
       harnesses = lib.mapAttrs (h: ad: lib.mkOption {
         type = lib.types.bool;
