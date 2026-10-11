@@ -59,6 +59,14 @@ runs, allow the test command on the command line
 allow rule in the test repository's `.claude/settings.json` was not applied
 (2026-10-11).
 
+Codex also reads `.codex/agents/<name>.toml` from a trusted repository, ahead
+of the user-level file. `codex exec` trusts the repository by writing to
+`$CODEX_HOME/config.toml`, so test with a scratch `CODEX_HOME` (copies of
+`config.toml` and `auth.json`); rollouts then land in its `sessions/`. The
+sandbox has no network: give the test repository an offline test command.
+The delegation message is encrypted in the rollout, so a verbatim pass
+cannot be checked there.
+
 Check, for each harness:
 
 | question | codex | claude |
@@ -106,4 +114,8 @@ answer, check that the main agent continued the same subagent (Claude Code: a
 Answer with `claude -p --resume <session-id> "<answers>"` and look for
 `"resumedAgentId"` in the SendMessage result. The continued subagent runs in
 the background, so the stream has two `result` events; the takeover (the main
-agent's own `git diff` / test run) comes after the first one.
+agent's own `git diff` / test run) comes after the first one. In Codex,
+answer with `codex exec resume <id> "<answers>"` from the repository (with
+`-c sandbox_mode='"workspace-write"'`; resume takes no `-C` or `-s`) and look
+for `followup_task` with `"target":"<name>"` in the main rollout and the same
+child rollout growing, not a new `spawn_agent`.
