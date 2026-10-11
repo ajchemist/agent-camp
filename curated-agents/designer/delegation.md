@@ -33,9 +33,10 @@ out of scope / for `reference`, the references. The subagent does not see
 this conversation; the message is all it knows.
 
 **When it returns**, its files are in the working tree. Take the work over:
-check Changed against the diff and rerun Verified, pass Verified, Not checked and Risks / needs
-checking to the user as-is. On Info needed, ask the user those questions with its
-likely answers, then continue the same instance with the answers where the
-harness can (Claude Code: SendMessage to the agentId its return ends with;
-Codex: followup_task to it; both work in a resumed session); otherwise delegate again with the answers and its return. Wait
-for its next return before taking the work over.
+check Changed against the diff and rerun Verified, then pass Verified, Not
+checked and Risks / needs checking to the user as-is. On Info needed, ask the
+user those questions with its likely answers, then continue the same
+instance with the answers where the harness can (Claude Code: SendMessage to
+the agentId its return ends with; Codex: followup_task to it; both work in a
+resumed session); otherwise delegate again with the answers and its return.
+Wait for its next return before taking the work over.
