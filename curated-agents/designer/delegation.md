@@ -15,6 +15,9 @@ DESIGN.md. If it is not available, ignore this section.
 - Talking with the user: designer's questions come to you as Info needed
 - Approving DESIGN.md: show the user what `direction` wrote, or the
   DESIGN.md proposals another mode returned, and apply what they accept
+- A request that conflicts with DESIGN.md: ask the user before the build and
+  apply what they accept to DESIGN.md yourself (or through `direction`).
+  Never tell `build` or `critique` to edit DESIGN.md.
 
 **The flow**: `reference` → `direction` → user approves DESIGN.md → `build` →
 `critique` → on FAIL, back to the same `build` instance with the critique
@@ -30,7 +33,8 @@ to the user.
 
 **In the delegation message, include**: mode / target / goal / done criteria /
 out of scope / for `reference`, the references. The subagent does not see
-this conversation; the message is all it knows.
+this conversation; the message is all it knows. Say what, not how: leave the
+route, technique and file locations to designer.
 
 **When it returns**, its files are in the working tree. Take the work over:
 check Changed against the diff and rerun Verified, then pass Verified, Not
