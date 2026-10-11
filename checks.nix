@@ -63,31 +63,35 @@ in
     assert lib.assertMsg refused "unknown harness accepted";
     pkgs.runCommand "agent-camp-defaults" { } "touch $out";
 
-  # Curated agents: ponytail lands for claude and codex by default, kimi only
+  # Curated agents: each lands for claude and codex by default, kimi only
   # when asked, nothing when disabled; kimi's built-in coder is replaced only
-  # with replaceBuiltins; every skill path in a rendered prompt
-  # is a file in the pinned upstream.
+  # with replaceBuiltins; every store file a rendered prompt names exists
+  # (skills and their playbooks, in the pinned upstreams or the agent's own).
   curated =
     let
-      all = [ ".agents/agents/ponytail.md" ".claude/agents/ponytail.md" ".codex/agents/ponytail.toml" ];
-      # Linked through home.file, or copied by the curatedAgentCopies step.
-      files = c: lib.filter (f: c.home.file ? ${f} || lib.hasInfix "\"$HOME/${f}\"" c.home.activation.curatedAgentCopies.data) all;
       curated = import ./curated-agents { inherit pkgs; };
-      rendered = lib.mapAttrsToList (_: ad: ad.render "ponytail" curated.agents.ponytail) curated.adapters;
+      names = lib.attrNames curated.agents;
+      all = n: [ ".agents/agents/${n}.md" ".claude/agents/${n}.md" ".codex/agents/${n}.toml" ];
+      # Linked through home.file, or copied by the curatedAgentCopies step.
+      files = c: n: lib.filter (f: c.home.file ? ${f} || lib.hasInfix "\"$HOME/${f}\"" c.home.activation.curatedAgentCopies.data) (all n);
+      rendered = lib.concatMap (n: lib.mapAttrsToList (_: ad: ad.render n curated.agents.${n}) curated.adapters) names;
       withKimi = homeWith [{ agent-camp.curated-agents.ponytail.harnesses.kimi = true; }];
-      off = homeWith [{ agent-camp.curated-agents.ponytail.enable = false; }];
+      off = homeWith [{ agent-camp.curated-agents = lib.genAttrs names (_: { enable = false; }); }];
       kimiCoder = homeWith [{ agent-camp.curated-agents.ponytail = { harnesses.kimi = true; replaceBuiltins = true; }; }];
-      want = [ ".claude/agents/ponytail.md" ".codex/agents/ponytail.toml" ];
+      twoReplacers = !(builtins.tryEval (mkHome [ module { agent-camp.curated-agents = lib.genAttrs names (_: { replaceBuiltins = true; }); } ]).activationPackage.drvPath).success;
     in
-    assert lib.assertMsg (files bare == want) "default curated files: ${toString (files bare)}";
-    assert lib.assertMsg (!(bare.home.file ? ".codex/agents/ponytail.toml")) "codex agent is a symlink again (codex skips those)";
-    assert lib.assertMsg (lib.elem ".agents/agents/ponytail.md" (files withKimi)) "kimi opt-in wrote nothing";
-    assert lib.assertMsg (files off == [ ]) "disabled curated agent still installed: ${toString (files off)}";
+    assert lib.all (n: lib.assertMsg (files bare n == [ ".claude/agents/${n}.md" ".codex/agents/${n}.toml" ])
+      "default curated files for ${n}: ${toString (files bare n)}") names;
+    assert lib.all (n: lib.assertMsg (!(bare.home.file ? ".codex/agents/${n}.toml")) "codex agent ${n} is a symlink again (codex skips those)") names;
+    assert lib.assertMsg (lib.elem ".agents/agents/ponytail.md" (files withKimi "ponytail")) "kimi opt-in wrote nothing";
+    assert lib.all (n: lib.assertMsg (files off n == [ ]) "disabled curated agent ${n} still installed: ${toString (files off n)}") names;
     assert lib.assertMsg (!(withKimi.home.file ? ".agents/agents/coder.md")) "kimi coder replaced without replaceBuiltins";
+    assert lib.assertMsg twoReplacers "two agents replacing one built-in accepted";
     pkgs.runCommand "agent-camp-curated" { } ''
       for f in ${toString rendered}; do
-        paths=$(grep -o '/nix/store/[^ `"]*/SKILL.md' "$f" | sort -u)
-        [ -n "$paths" ] || { echo "FAIL: no skill paths in $f"; exit 1; }
+        grep -q '/nix/store/[^ `"]*/SKILL.md' "$f" || { echo "FAIL: no skill paths in $f"; exit 1; }
+        # `<name>` placeholders are for the agent to fill in, not files.
+        paths=$(grep -o '/nix/store/[^ `"<]*\.md' "$f" | sort -u)
         for p in $paths; do [ -f "$p" ] || { echo "FAIL: $f names missing $p"; exit 1; }; done
       done
       grep -q '^\''${base_prompt}' ${withKimi.home.file.".agents/agents/ponytail.md".source} || { echo "FAIL: kimi prompt lacks base_prompt"; exit 1; }

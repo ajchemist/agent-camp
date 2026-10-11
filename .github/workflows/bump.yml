@@ -12,7 +12,7 @@ on:
       tool:
         description: Pinned tool to bump
         type: choice
-        options: [bun, herdr, ponytail, mattpocock-skills]
+        options: [bun, herdr, ponytail, mattpocock-skills, designer-emil, designer-impeccable, designer-taste, designer-gsap]
 
 permissions:
   contents: write
@@ -34,7 +34,7 @@ jobs:
       HAS_AGENT: ${{ secrets.OMNIROUTE_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v7
-      # Source-tree pins (ponytail, mattpocock-skills) hash with `nix flake prefetch`.
+      # Source-tree pins (curated agents' upstreams, mattpocock-skills) hash with `nix flake prefetch`.
       - uses: DeterminateSystems/nix-installer-action@v23
       - name: Which tool
         id: tool
