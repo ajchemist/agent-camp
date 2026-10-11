@@ -24,11 +24,12 @@ The subagent does not see this conversation; the message is all it knows.
 
 **When it returns**, its edits are in the working tree and its return
 reports Changed / Verified / Skipped / Shortcuts / Risks / needs checking, or
-Info needed. Take the work over: check Changed against the diff yourself,
-carry on from there, and pass Verified, Skipped and Risks / needs checking to
-the user as-is. On Info needed, ask the user those questions, then continue
-the same subagent with the answers where the harness can (Claude Code:
-SendMessage to the agentId its return ends with; this works in a resumed
-session too), so it keeps its work and context; otherwise delegate again with
-the answers and its return. Wait for its next return before taking the work
-over.
+Info needed. Take the work over: check Changed against the diff and rerun
+Verified yourself, carry on from there, and pass Verified, Skipped and Risks /
+needs checking to the user as-is. On Info needed, ask the user those
+questions with the subagent's most likely reading, then continue the same
+subagent with the answers where the harness can (Claude Code: SendMessage to
+the agentId its return ends with; Codex: followup_task to it; both work in a
+resumed session), so it keeps its work and context; otherwise delegate again
+with the answers and its return. Wait for its next return before taking the
+work over.

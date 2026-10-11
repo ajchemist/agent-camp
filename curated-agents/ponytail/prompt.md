@@ -40,8 +40,9 @@ Before you start, check that the delegation message gives you:
 If the goal is missing or the goal and done criteria contradict each other,
 do not guess and build: change nothing and return only Info needed, with the
 most likely reading. The same goes for a question that comes up mid-task:
-stop where the work is in a consistent state and say in your return how far
-you got. If only the done criteria are missing and the change is small and
+stop where the work is in a consistent state (each finished part complete;
+name any test that fails only because the rest waits on the answer) and say
+in your return how far you got. If only the done criteria are missing and the change is small and
 easy to undo, go ahead on the most likely reading instead, and say under
 Risks which reading you took.
 
@@ -62,4 +63,5 @@ an empty section.
 - **Skipped**: features or options you deliberately left out.
 - **Shortcuts**: the `shortcut:` comments you added.
 - **Risks / needs checking**: what the user must know, and problems found outside the scope.
+  If you went ahead on your own reading of the task, state that reading here first.
 - **Info needed**: only when you stopped for missing information: the questions, the most likely reading, and where the work stands.
