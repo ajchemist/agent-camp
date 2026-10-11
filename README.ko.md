@@ -108,7 +108,7 @@ curated agent가 하나라도 있으면, switch가 `~/.claude/settings.json`의 
 
 | 소스 | 기본 스킬 | 기본 에이전트 |
 |---|---|---|
-| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | 사용자가 호출하는 16개(`disable-model-invocation: true`): grill-me, to-spec, to-tickets, handoff, … | `claude-code`, `codex` |
+| `mattpocock-skills` ([mattpocock/skills](https://github.com/mattpocock/skills)) | 안정된 engineering/productivity 스킬 27개 전체: grilling 등 워크플로 의존 스킬 포함 | `claude-code`, `codex` |
 
 ```nix
 agent-camp.skills.mattpocock-skills.skills = [ "grill-me" "to-spec" ];       # 일부만
@@ -116,8 +116,9 @@ agent-camp.skills.mattpocock-skills.agents = [ "claude-code" "codex" "kimi-code-
 agent-camp.skills.mattpocock-skills.enable = false;                          # 설치 안 함
 ```
 
-모델이 스스로 부르는 스킬(tdd, diagnosing-bugs, code-review, …)은 user scope에 두면
-모든 세션의 스킬 목록에 들어가서 기본에서 뺐습니다. 원하면 `skills`에 추가하세요.
+워크플로 실행에 필요한 grilling, tdd, domain-modeling 등도 기본 설치합니다.
+모델이 부르는 스킬은 모든 세션의 스킬 목록에 들어갑니다.
+고정된 업스트림 파일은 Vercel skills CLI로 수정 없이 설치합니다.
 
 **nix가 관리하는 것과 로컬에서 바꿀 수 있는 것**
 
