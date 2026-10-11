@@ -70,6 +70,11 @@ agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지
 파일 위치: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi는 본체에 서브에이전트가 없어서 아직 설치하지 않습니다.
 
+설치만으로는 위임되지 않습니다. 에이전트의 위임 규칙(`curated-agents/<name>/delegation.md`)을
+저장소 `AGENTS.md`에 넣어야 합니다. ponytail을 만들고 검증한 과정:
+[docs/curated-agent-workflow.md](docs/curated-agent-workflow.md). 하네스별로 무엇을
+컨텍스트에 넣고 어떻게 뺄 수 있는지: [docs/harness-context.md](docs/harness-context.md).
+
 ## User scope 스킬
 
 특정 저장소가 아니라 일하는 방식에 관한 스킬은 저장소마다 `skills-lock.json`이나

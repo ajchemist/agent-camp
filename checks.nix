@@ -15,7 +15,7 @@ let
 
   # Each agent-camp activation step as the switch runs it, with HM's `run`
   # (dry-run aware wrapper) stubbed, so shellcheck sees the generated shell.
-  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "curatedAgentCopies" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
+  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "curatedAgentCopies" "curatedClaudePermissions" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
   activationScript = c: pkgs.writeText "agent-camp-activation.sh" (''
     #!/usr/bin/env bash
     set -eu
@@ -93,6 +93,18 @@ in
       grep -q '^\''${base_prompt}' ${withKimi.home.file.".agents/agents/ponytail.md".source} || { echo "FAIL: kimi prompt lacks base_prompt"; exit 1; }
       f=${kimiCoder.home.file.".agents/agents/coder.md".source}
       grep -q '^name: coder$' "$f" && grep -q '^override: true$' "$f" && grep -q '^\''${base_prompt}' "$f" || { echo "FAIL: kimi coder override malformed"; exit 1; }
+
+      # Claude read rules: added next to the user's own, each naming a real
+      # directory; gone when disabled, the user's rules and keys kept.
+      export HOME=$PWD
+      run() { "$@"; }
+      mkdir -p .claude && echo '{"permissions":{"allow":["mine"]},"x":1}' > .claude/settings.json
+      ${bare.home.activation.curatedClaudePermissions.data}
+      ${pkgs.jq}/bin/jq -e '.x == 1 and .permissions.allow[0] == "mine" and (.permissions.allow | length) == 2' .claude/settings.json >/dev/null || { echo "FAIL: rule not added beside the user's"; cat .claude/settings.json; exit 1; }
+      d=$(${pkgs.jq}/bin/jq -r '.permissions.allow[1] | capture("^Read\\(/(?<p>.*)/\\*\\*\\)$").p' .claude/settings.json)
+      [ -d "$d" ] || { echo "FAIL: rule names missing $d"; exit 1; }
+      ${off.home.activation.curatedClaudePermissions.data}
+      ${pkgs.jq}/bin/jq -e '.permissions.allow == ["mine"]' .claude/settings.json >/dev/null || { echo "FAIL: disable left rules behind"; cat .claude/settings.json; exit 1; }
       touch $out
     '';
 

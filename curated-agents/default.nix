@@ -20,12 +20,18 @@ in
   # harness -> { default; file = name: home-relative path; render = name: agent: store file;
   #   copy = true: placed as a regular file, not a home.file symlink;
   #   replaces = { <built-in coding subagent> = its description; }: replaced by
-  #   the curated agent under that name when `replaceBuiltins` is on }
+  #   the curated agent under that name when `replaceBuiltins` is on;
+  #   allow = permission rules the harness needs for any curated agent }
   adapters = {
     claude = {
       default = true;
       file = name: ".claude/agents/${name}.md";
       render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + a.prompt);
+      # Claude Code asks before reading outside the workspace, and a headless
+      # run (`claude -p`) is refused outright, so the agent would work without
+      # its skills. The whole store: it is read-only, and the skill paths move
+      # with every bump. Merged into ~/.claude/settings.json by the module.
+      allow = [ "Read(//nix/store/**)" ];
     };
     codex = {
       default = true;

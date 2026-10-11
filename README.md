@@ -74,6 +74,11 @@ agent-camp.curated-agents.ponytail.enable = false;         # or none at all
 Files: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi has no built-in subagents, so it gets none yet.
 
+An installed agent is not delegated to on its own: paste its rules
+(`curated-agents/<name>/delegation.md`) into a repository's `AGENTS.md`. How
+ponytail was built and checked: [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md).
+What each harness loads and how to leave it out: [docs/harness-context.md](docs/harness-context.md).
+
 ## User-scope skills
 
 Skills that are about how you work, not about one repository, live at user

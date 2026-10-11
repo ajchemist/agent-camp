@@ -17,6 +17,9 @@ let
         ([{ n = name; agent = a; }] ++ lib.optionals cfg.curated-agents.${name}.replaceBuiltins
           (lib.mapAttrsToList (b: description: { n = b; agent = a // { inherit description; override = true; }; }) (ad.replaces or { }))))
     ) curated.adapters))) curated.agents);
+  # Claude Code permission rules, while any curated agent goes to claude.
+  claudeAllow = lib.optionals (lib.any (n: cfg.curated-agents.${n}.enable && cfg.curated-agents.${n}.harnesses.claude)
+    (lib.attrNames curated.agents)) curated.adapters.claude.allow;
   skillSources = import ./skill-sources { inherit pkgs; };
   wantedSkills = lib.filterAttrs (_: o: o.enable) cfg.skills;
   bun = import ./bun.nix { inherit pkgs; };
@@ -160,6 +163,31 @@ in
         '') copies}
         run mkdir -p "$(dirname "$state")"
         printf '%s\n' $wanted | run tee "$state" >/dev/null
+      '');
+
+      # The claude curated agents' rules in ~/.claude/settings.json, which
+      # Claude Code also writes: only the rules this step added are touched.
+      # The last set is kept in state, so a bump or a disable replaces it.
+      home.activation.curatedClaudePermissions = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
+        jq = "${pkgs.jq}/bin/jq";
+      in ''
+        state="$HOME/.local/state/agent-camp/claude-allow" settings="$HOME/.claude/settings.json"
+        want=${lib.escapeShellArg (builtins.toJSON claudeAllow)}
+        old=$(cat "$state" 2>/dev/null || echo '[]')
+        if [ "$want" != "$old" ] || { [ "$want" != '[]' ] && [ ! -e "$settings" ]; }; then
+          cur='{}'
+          [ ! -s "$settings" ] || cur=$(cat "$settings")
+          if [ -L "$settings" ]; then
+            echo "agent-camp: $settings is a link, not adding the curated agents' rules: $want" >&2
+          elif new=$(printf '%s' "$cur" | ${jq} --argjson old "$old" --argjson want "$want" \
+              '((.permissions.allow // []) - $old) as $k | .permissions.allow = $k + ($want - $k)'); then
+            run mkdir -p "$HOME/.claude" "$(dirname "$state")"
+            printf '%s\n' "$new" | run tee "$settings" >/dev/null
+            printf '%s\n' "$want" | run tee "$state" >/dev/null
+          else
+            echo "agent-camp: $settings is not valid JSON, not adding the curated agents' rules: $want" >&2
+          fi
+        fi
       '');
 
       # User-scope skills (skill-sources/): nix pins each source, the skills CLI

@@ -5,6 +5,6 @@ let
   upstream = import ./source.nix { inherit pkgs; };
 in
 {
-  description = "Senior engineer for implementation, fixes, refactors and code review. Delegate coding work that should land as the smallest complete change.";
+  description = "Carries out scoped code changes (implementation, bug fixes, refactoring, diff review, repo audit) as the smallest complete change, never cutting safety. Delegate only when the repository's AGENTS.md has delegation rules for it.";
   prompt = builtins.replaceStrings [ "@SKILLS@" ] [ "${upstream.src}/skills" ] (builtins.readFile ./prompt.md);
 }
