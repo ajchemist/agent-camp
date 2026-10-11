@@ -5,11 +5,11 @@ Status: accepted (2026-10-09).
 A skill about how someone works (grilling, spec and ticket flows, handoffs) is not about any one repository. Putting it in each repository's `skills-lock.json` or plugin settings mixes personal workflow into the codebase and its history. Those skills go to user scope; a repository keeps only skills about itself.
 
 - **Nix decides what and which version.** `skill-sources/<name>/source.nix` pins the upstream release by commit and hash. It is a pinned tool under ADR 0001 (briefing, update ticket, bump PR).
-- **The skills CLI does the layout.** Activation runs `skills add <store path> -g -a <agent>… -s <skill>… -y` (CLI version pinned). The CLI copies to `~/.agents/skills`, symlinks the other agents' dirs and records the store path as a local source in `~/.agents/.skill-lock.json`. The option for where skills go, `agents`, takes the CLI's agent IDs as they are.
+- **The skills CLI does the layout.** Upstream skill files are installed unchanged; agent-camp does not patch their instructions. Activation runs `skills add <store path> -g -a <agent>… -s <skill>… -y` (CLI version pinned). The CLI copies to `~/.agents/skills`, symlinks the other agents' dirs and records the store path as a local source in `~/.agents/.skill-lock.json`. The option for where skills go, `agents`, takes the CLI's agent IDs as they are.
 - **Re-applied only on a nix change.** A source is added again only when its pin, skill list or agent list changes (`~/.local/state/agent-camp/skills/<name>`). Between changes the host may diverge; the next change overwrites what came from that source.
 - **The copies stay read-only.** They keep the store's mode, which marks them as nix's. Taking one over means `skills add` from another source or `skills remove`, documented in the README.
 - **Cleanup by provenance.** Skills whose recorded source is a store path and that no source lists any more are removed. Skills from any other source are never touched.
-- **Default: user-invoked only.** mattpocock/skills' 16 `disable-model-invocation: true` skills, for `claude-code` and `codex`. They take no context until typed. Model-invoked skills load into every session at user scope, so they stay with a repository or a curated agent (ADR 0003).
+- **Default: complete stable workflows.** All 27 engineering/productivity skills from mattpocock/skills, for `claude-code` and `codex`, including model-invoked dependencies. Revised 2026-10-11: installing only user-invoked entry points left `grill-me` without `grilling` and broke other workflows. Model-invoked skills appear in every session, a necessary cost of making the workflows available globally. In-progress and miscellaneous skills remain opt-in.
 
 ## Considered options
 

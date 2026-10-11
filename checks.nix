@@ -108,8 +108,8 @@ in
       touch $out
     '';
 
-  # User-scope skills: every default skill exists in its pinned source and is
-  # user-invoked (the reason it may sit in every harness); disabling a source
+  # User-scope skills: stable workflows and their reusable dependencies exist
+  # in the pinned upstream source; disabling a source
   # leaves no `skills add` for it.
   skills =
     let
@@ -117,14 +117,26 @@ in
       off = homeWith [{ agent-camp.skills.mattpocock-skills.enable = false; }];
       adds = c: lib.hasInfix "skills_cli add" c.home.activation.userSkills.data;
     in
+    assert lib.assertMsg (lib.all (k: lib.elem k sources.mattpocock-skills.skills)
+      [ "grill-me" "grilling" "domain-modeling" "tdd" "research" "prototype" ]) "workflow dependencies missing";
     assert lib.assertMsg (adds bare) "default skills not added";
     assert lib.assertMsg (!adds off) "disabled skill source still added";
     pkgs.runCommand "agent-camp-skills" { } ''
       ${lib.concatStrings (lib.mapAttrsToList (n: src: lib.concatMapStrings (k: ''
         f=$(find ${src.src} -path "*/${k}/SKILL.md" | head -1)
         [ -n "$f" ] || { echo "FAIL: ${n}: no ${k}/SKILL.md"; exit 1; }
-        grep -q '^disable-model-invocation: true' "$f" || { echo "FAIL: ${n}: ${k} is model-invoked"; exit 1; }
       '') src.skills) sources)}
+      ${lib.concatStrings (lib.mapAttrsToList (n: src: ''
+        for category in engineering productivity; do
+          for f in ${src.src}/skills/$category/*/SKILL.md; do
+            k=$(basename "$(dirname "$f")")
+            case " ${lib.concatStringsSep " " src.skills} " in
+              *" $k "*) ;;
+              *) echo "FAIL: ${n}: stable skill $k omitted from defaults"; exit 1 ;;
+            esac
+          done
+        done
+      '') sources)}
       touch $out
     '';
 
