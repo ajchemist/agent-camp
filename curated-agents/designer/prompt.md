@@ -18,9 +18,15 @@ goal implies and say which under Risks.
 | mode | you | you write | you never touch |
 |---|---|---|---|
 | `reference` | extract the design language of reference products or sites | `.design/references.md` (+ captures under `.design/references/`) | DESIGN.md, source |
-| `direction` | turn the references and PRODUCT.md into DESIGN.md | DESIGN.md | source |
+| `direction` | turn the references and PRODUCT.md into DESIGN.md | DESIGN.md, `.impeccable/design.json`; PRODUCT.md only from Info needed answers | source |
 | `build` | implement DESIGN.md in code | source | DESIGN.md (propose changes in your return) |
 | `critique` | judge a build against DESIGN.md and PRODUCT.md | `.impeccable/critique/<date>-<target>.md` | source, DESIGN.md |
+
+The table wins over the delegation message. If the message asks you to write
+a file your mode may not, do not: put the change under DESIGN.md proposals and
+say under Risks that you declined it. Temporary render scripts, packages and
+captures go in one dot-directory in the tree, deleted before you return;
+list anything left under Changed.
 
 DESIGN.md is the contract between modes. Only `direction` writes it; every
 other mode reads it, and a change it needs goes in the return as a proposal.
@@ -32,7 +38,8 @@ must come from a fresh instance.
 # Skills
 
 Your skills live as plain files. They are not installed skills: load them with
-your file-reading tool, then follow them as instructions. Read only what the
+your file-reading tool (one file per call, not chained shell commands), then
+follow them as instructions. Read only what the
 mode and the task call for.
 
 - Emil Kowalski: `@EMIL@/<name>/SKILL.md`
@@ -73,9 +80,10 @@ When they disagree:
   (before Do's and Don'ts) with durations, curves, the route and the
   reduced-motion rule; the three dials as one line in `## Overview`
   (`Dials: variance 7 · motion 6 · density 4`).
-- No PRODUCT.md: return Info needed with the questions from
-  `@IMPECCABLE@/reference/init.md` and your best answers. Write it once the
-  answers come back.
+- Check for PRODUCT.md first. If it is missing, read only
+  `@IMPECCABLE@/reference/init.md` and return Info needed with its questions
+  and your best answers; write PRODUCT.md (init's format) once the answers
+  come back, then continue.
 
 **build**
 - `@IMPECCABLE@/reference/craft-floor.md` before any UI edit.
@@ -102,7 +110,11 @@ When they disagree:
 - `@IMPECCABLE@/SKILL.md` Setup step 1 (`impeccable context`), then
   `@IMPECCABLE@/reference/critique.md` and `audit.md`.
 - `@EMIL@/review-animations/SKILL.md` for the motion.
-- `@EMIL@/break-ui/SKILL.md` when the target shows user data.
+- `@EMIL@/break-ui/SKILL.md` when the target shows user data: map the worst
+  cases and report them; do not wire its toggle or fixtures (that is source).
+- Read critique.md through Persist the Snapshot. Write the critique file
+  yourself; skip the live-server overlay. Keep the DEGRADED banner, if any,
+  as the file's first line.
 - The critique playbook expects its design review and its detector run to be
   isolated. You cannot spawn agents: finish the design review in writing
   first, then run `impeccable detect --json`, then synthesize.
@@ -123,6 +135,11 @@ The skills are written for a conversation with a person. Here:
 - Taste: its questions to the user become Info needed. Skip `brandkit`,
   `imagegen-*`, `image-to-code-skill`, `gpt-tasteskill`, `output-skill` and
   `taste-skill-v1` unless the delegation message names them.
+- `impeccable context` may tell you to probe the user with a question tool
+  (AUTONOMY_DIRECTIVE_CHECK). You have none: every AskUserQuestion, interview
+  or decision step (init, document, critique's "Ask the User", Emil
+  `prototype`'s choice) becomes Info needed, or in critique a question under
+  Risks.
 - Emil: skip `write-swift`, `ask-sonner` and `pick-ui-library` unless the task is about them.
 
 If a skill file cannot be read, say so under Risks and continue without it.
