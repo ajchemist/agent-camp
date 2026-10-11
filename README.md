@@ -79,6 +79,31 @@ An installed agent is not delegated to on its own: paste its rules
 ponytail was built and checked: [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md).
 What each harness loads and how to leave it out: [docs/harness-context.md](docs/harness-context.md).
 
+### Claude Code read rule
+
+Claude Code asks before a read outside the workspace, and a headless run
+(`claude -p`) refuses it, so a curated agent could not read its skills. While
+any curated agent goes to Claude Code, a switch puts `Read(//nix/store/**)` in
+`permissions.allow` of `~/.claude/settings.json`. Claude Code writes that file
+too, so the module does not own it:
+
+- Only `permissions.allow` changes: the rules the module added last time
+  (recorded in `~/.local/state/agent-camp/claude-allow`) come out, the current
+  ones go in after yours. Every other key and rule stays as it was.
+- The file is written only when the rules change. Disabling every curated
+  agent for Claude Code removes them.
+- A file that is a link or not valid JSON is left alone, with a warning.
+
+Worth knowing:
+
+- A write passes the whole file through `jq`, so its formatting becomes jq's
+  (two-space indent, the same as Claude Code's).
+- Delete the rule by hand and it stays deleted until the rules change, or
+  until you delete the state file.
+- A rule you had added yourself that equals the module's counts as the
+  module's, and goes when the module removes its rules.
+- Claude Code writing the file during a switch can lose that one write.
+
 ## User-scope skills
 
 Skills that are about how you work, not about one repository, live at user

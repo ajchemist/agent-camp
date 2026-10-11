@@ -75,6 +75,26 @@ kimi `~/.agents/agents/<name>.md`. pi는 본체에 서브에이전트가 없어�
 [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md). 하네스별로 무엇을
 컨텍스트에 넣고 어떻게 뺄 수 있는지: [docs/harness-context.md](docs/harness-context.md).
 
+### Claude Code 읽기 규칙
+
+Claude Code는 작업 폴더 밖의 파일을 읽기 전에 허락을 묻고, headless 실행(`claude -p`)에서는
+거부합니다. 그래서 curated agent가 자기 스킬을 읽지 못할 수 있습니다. Claude Code로 가는
+curated agent가 하나라도 있으면, switch가 `~/.claude/settings.json`의 `permissions.allow`에
+`Read(//nix/store/**)`를 넣습니다. 이 파일은 Claude Code도 고쳐 쓰기 때문에 모듈이 통째로
+관리하지 않습니다.
+
+- `permissions.allow`만 바꿉니다. 지난번에 모듈이 넣은 규칙(`~/.local/state/agent-camp/claude-allow`에
+  기록)을 빼고, 지금 필요한 규칙을 사용자 규칙 뒤에 넣습니다. 다른 키와 규칙은 그대로 둡니다.
+- 규칙이 바뀔 때만 파일을 씁니다. Claude Code용 curated agent를 모두 끄면 규칙도 빠집니다.
+- 파일이 링크이거나 JSON이 깨져 있으면 건드리지 않고 경고만 냅니다.
+
+알아 둘 점:
+
+- 쓸 때 파일 전체가 `jq`를 거치므로 포맷이 jq 형식(2칸 들여쓰기, Claude Code와 같음)이 됩니다.
+- 규칙을 손으로 지우면 규칙 내용이 바뀌거나 state 파일을 지우기 전까지 다시 넣지 않습니다.
+- 모듈과 같은 규칙을 직접 넣어 두었다면 모듈 것으로 취급되어, 모듈이 규칙을 뺄 때 같이 빠집니다.
+- switch 도중 Claude Code가 이 파일을 쓰면 그 한 번의 변경이 덮어써질 수 있습니다.
+
 ## User scope 스킬
 
 특정 저장소가 아니라 일하는 방식에 관한 스킬은 저장소마다 `skills-lock.json`이나
