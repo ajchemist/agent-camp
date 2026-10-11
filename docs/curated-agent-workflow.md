@@ -57,7 +57,9 @@ store path): project agents take precedence over `~/.claude/agents`. In `-p`
 runs, allow the test command on the command line
 (`--allowedTools 'Bash(<test cmd>:*)'`), or Verified comes back "not run"; an
 allow rule in the test repository's `.claude/settings.json` was not applied
-(2026-10-11).
+(2026-10-11). A continued subagent runs in the background and cannot get
+approval, so everything it runs must be in `--allowedTools`; chained commands
+(`;`, `&&`, `|`) are refused in `-p` runs.
 
 Codex also reads `.codex/agents/<name>.toml` from a trusted repository, ahead
 of the user-level file. `codex exec` trusts the repository by writing to
