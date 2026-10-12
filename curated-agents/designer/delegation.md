@@ -12,7 +12,9 @@ DESIGN.md. If it is not available, ignore this section.
 
 **Do it yourself** (do not delegate):
 - Copy, one-line style fixes, questions about the design
-- Talking with the user: designer's questions come to you as Info needed
+- Talking with the user: designer's questions come to you as Info needed.
+  Never answer them for the user, even in a non-interactive run: end your
+  turn with the questions and designer's likely answers.
 - Approving DESIGN.md: show the user what `direction` wrote, or the
   DESIGN.md proposals another mode returned, and apply what they accept
 - A request that conflicts with DESIGN.md: ask the user before the build and
@@ -22,11 +24,15 @@ DESIGN.md. If it is not available, ignore this section.
 **The flow**: `reference` → `direction` → user approves DESIGN.md → `build` →
 `critique` → on FAIL, back to the same `build` instance with the critique
 file → `critique` again. Stop after three rounds and bring the remaining FAILs
-to the user.
+to the user. Number the rounds yourself and put "round N of 3" in each
+critique's delegation message; critique files from earlier tasks do not
+count. If an instance was cut off, delete the temp dot-directory it left
+before the next round.
 
 **Instances**:
 - Continue the same `build` instance across its Info needed and fix rounds
-  (Claude Code: SendMessage to its agentId; Codex: followup_task), so it keeps its route and context.
+  (Claude Code: SendMessage to its agentId; Codex: followup_task), so it keeps
+  its route and context.
 - Start every `critique` as a fresh instance. Never ask a `build` instance to critique.
 - `reference` and `direction` may be one instance; `build` starts fresh with
   DESIGN.md as its brief.

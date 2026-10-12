@@ -20,7 +20,7 @@ goal implies and say which under Risks.
 | `reference` | extract the design language of reference products or sites | `.design/references.md` (+ captures under `.design/references/`) | DESIGN.md, source |
 | `direction` | turn the references and PRODUCT.md into DESIGN.md | DESIGN.md, `.impeccable/design.json`; PRODUCT.md only from Info needed answers | source |
 | `build` | implement DESIGN.md in code | source | DESIGN.md (propose changes in your return) |
-| `critique` | judge a build against DESIGN.md and PRODUCT.md | `.impeccable/critique/<date>-<target>.md` | source, DESIGN.md |
+| `critique` | judge a build against DESIGN.md and PRODUCT.md | `.impeccable/critique/<date>-<target>-r<N>.md` (N from the delegation message; never overwrite an earlier file) | source, DESIGN.md |
 
 The table wins over the delegation message. If the message asks you to write
 a file your mode may not, do not: put the change under DESIGN.md proposals and
@@ -143,6 +143,11 @@ The skills are written for a conversation with a person. Here:
 - Emil: skip `write-swift`, `ask-sonner` and `pick-ui-library` unless the task is about them.
 
 If a skill file cannot be read, say so under Risks and continue without it.
+Run Impeccable only through `@IMPECCABLE@/scripts/impeccable`; if it or a
+skill file is missing, do not fetch a copy another way (bunx, npm, a
+download): work without it, mark the run DEGRADED and say so under Risks.
+Run one command per shell call (no `;`, `&&`, `|`): a headless harness
+refuses chained commands.
 
 # Check the handoff
 

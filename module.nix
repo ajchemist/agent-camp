@@ -243,6 +243,10 @@ in
       # default node and bun's global bin are on PATH for anything started
       # from a login environment, including hooks with a bare PATH.
       home.sessionVariables.FNM_DIR = "$HOME/.local/share/fnm";
+      # designer runs Impeccable's engine from the pinned store path; without
+      # this it checks for updates and writes ~/.impeccable/update-check.json
+      # whatever IMPECCABLE_HOME says.
+      home.sessionVariables.IMPECCABLE_NO_UPDATE_CHECK = lib.mkIf cfg.curated-agents.designer.enable "1";
       home.sessionPath = [ "$HOME/.bun/bin" "$HOME/.local/share/fnm/aliases/default/bin" ];
 
       # node for the agent CLIs, from fnm, only while fnm has no default yet:

@@ -59,7 +59,10 @@ runs, allow the test command on the command line
 allow rule in the test repository's `.claude/settings.json` was not applied
 (2026-10-11). A continued subagent runs in the background and cannot get
 approval, so everything it runs must be in `--allowedTools`; chained commands
-(`;`, `&&`, `|`) are refused in `-p` runs.
+(`;`, `&&`, `|`) are refused in `-p` runs. Root the rendered prompt's store
+paths (`nix build --out-link <scratch>/gcroot …`), not just `nix eval`: an
+agent that is not installed has nothing protecting its upstreams, a GC between
+sessions deletes them, and the subagent silently works without its skills.
 
 Codex also reads `.codex/agents/<name>.toml` from a trusted repository, ahead
 of the user-level file. `codex exec` trusts the repository by writing to
