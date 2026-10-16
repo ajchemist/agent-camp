@@ -1,11 +1,24 @@
 {
-  description = "agent-camp: coding-agent CLIs, their ACP adapters and herdr, as a Home Manager module on top of nix-basecamp";
+  description = "agent-camp: coding-agent CLIs, their ACP adapters and herdr, as a Home Manager module";
 
-  inputs.basecamp.url = "github:ajchemist/nix-basecamp";
+  # Upstream directly, the same URLs as nix-basecamp's: a downstream points
+  # all three at its own with `follows`, so one lock pins them for everything.
+  # home-manager and nix-darwin serve only the checks and the CI deploy.
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    home-manager = {
+      url = "git+https://github.com/nix-community/home-manager.git?ref=master&shallow=1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-darwin = {
+      url = "git+https://github.com/nix-darwin/nix-darwin.git?ref=master&shallow=1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
-  outputs = { self, basecamp, ... }:
+  outputs = { self, nixpkgs, home-manager, nix-darwin, ... }:
   let
-    nixpkgs = basecamp.inputs.nixpkgs;
+    fixture = import ./ci/fixture.nix { inherit nixpkgs home-manager nix-darwin; };
     systems = [ "x86_64-linux" "aarch64-darwin" ];
     forAll = f: nixpkgs.lib.genAttrs systems (s: f nixpkgs.legacyPackages.${s});
 
@@ -15,14 +28,14 @@
       agent-camp.harnesses = nixpkgs.lib.genAttrs [ "claude" "codex" "pi" "goose" ] (_: { enable = true; acp = true; });
       agent-camp.herdr.enable = true;
     };
-    linuxHome = basecamp.lib.mkHome { user = "fixture"; modules = [ self.homeModules.default ciSettings ]; };
-    darwin = basecamp.lib.mkDarwin {
+    linuxHome = fixture.home { user = "fixture"; modules = [ self.homeModules.default ciSettings ]; };
+    darwin = fixture.darwin {
       user = "fixture";
       modules = [{ home-manager.sharedModules = [ self.homeModules.default ciSettings ]; }];
     };
     hostChecks = system: import ./checks.nix {
       pkgs = nixpkgs.legacyPackages.${system};
-      mkHome = modules: basecamp.lib.mkHome {
+      mkHome = modules: fixture.home {
         inherit system modules; user = "fixture";
         homeDirectory = if nixpkgs.lib.hasSuffix "darwin" system then "/Users/fixture" else "/home/fixture";
       };

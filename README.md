@@ -3,13 +3,12 @@
 English · [한국어](README.ko.md)
 
 agent-camp installs harnesses (coding-agent CLIs), their ACP adapters, and
-[herdr](https://herdr.dev) through a Home Manager module on top of
-[nix-basecamp](https://github.com/ajchemist/nix-basecamp). It installs no
+[herdr](https://herdr.dev) through a Home Manager module. It installs no
 harness you did not say yes to. Curated agents and user-scope skills, which are
 only files for the harnesses, are on by default and can be switched off.
 
 ```
-nix-basecamp   nixpkgs, Home Manager / nix-darwin builders
+upstream       nixpkgs, Home Manager, nix-darwin (your flake.lock pins them)
 agent-camp     harnesses + ACP adapters + herdr, and the bun/fnm/uv they need
 emacs-camp     agent-shell talks to the adapters (CI uses agent-camp)
 your flake     which harnesses, herdr config, agent config files
@@ -149,7 +148,10 @@ because at user scope they sit in every session's skill list; add them to
 ```nix
 inputs.agent-camp = {
   url = "github:ajchemist/agent-camp";
-  inputs.basecamp.follows = "basecamp";
+  # one pin for every flake: point these at your own inputs
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.home-manager.follows = "home-manager";
+  inputs.nix-darwin.follows = "nix-darwin";
 };
 
 # in a Home Manager configuration
@@ -181,7 +183,8 @@ goose's download-script binary, and a hand-installed `~/.local/bin/herdr`.
 
 - **check**: every output evaluates. Then each system builds all of its
   checks (`checks.nix`) before anything is deployed:
-  - the module in a real Home Manager / nix-darwin build;
+  - the module in a real Home Manager / nix-darwin build (`ci/fixture.nix`,
+    straight from the upstream builders);
   - shellcheck over the activation steps it generates;
   - the answer-file logic (`choice.sh`);
   - that importing the module alone installs no harness and no herdr, and

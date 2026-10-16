@@ -3,12 +3,11 @@
 [English](README.md) · 한국어
 
 agent-camp은 하네스(코딩 에이전트 CLI)와 그 ACP 어댑터, [herdr](https://herdr.dev)를
-[nix-basecamp](https://github.com/ajchemist/nix-basecamp) 위의 Home Manager
-모듈로 설치합니다. yes라고 답하지 않은 하네스는 설치하지 않습니다. 하네스가 읽는
+Home Manager 모듈로 설치합니다. yes라고 답하지 않은 하네스는 설치하지 않습니다. 하네스가 읽는
 파일일 뿐인 큐레이션 에이전트와 user scope 스킬은 기본으로 켜져 있고, 끌 수 있습니다.
 
 ```
-nix-basecamp   nixpkgs, Home Manager / nix-darwin 빌더
+upstream       nixpkgs, Home Manager, nix-darwin (여러분의 flake.lock이 고정)
 agent-camp     하네스 + ACP 어댑터 + herdr, 그리고 이들이 쓰는 bun/fnm/uv
 emacs-camp     agent-shell이 어댑터와 통신 (CI가 agent-camp를 사용)
 여러분의 flake 어떤 하네스를 쓸지, herdr 설정, 에이전트 설정 파일
@@ -136,7 +135,10 @@ agent-camp.skills.mattpocock-skills.enable = false;                          # �
 ```nix
 inputs.agent-camp = {
   url = "github:ajchemist/agent-camp";
-  inputs.basecamp.follows = "basecamp";
+  # 모든 flake가 같은 pin을 쓰도록 자기 input에 묶음
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.home-manager.follows = "home-manager";
+  inputs.nix-darwin.follows = "nix-darwin";
 };
 
 # Home Manager 설정 안에서
@@ -168,7 +170,8 @@ hermes의 node shim, uv standalone 바이너리, fnm node 아래의 전역 npm �
 
 - **check**: 모든 output이 평가되는지 확인합니다. 그다음 무엇이든 배포하기 전에,
   시스템마다 자기 check(`checks.nix`)를 전부 빌드합니다.
-  - 실제 Home Manager / nix-darwin 빌드 안에서의 모듈
+  - 실제 Home Manager / nix-darwin 빌드 안에서의 모듈(`ci/fixture.nix`, upstream
+    빌더 그대로)
   - 모듈이 생성하는 activation 단계에 대한 shellcheck
   - 답 파일 로직(`choice.sh`)
   - 모듈만 import하면 하네스도 herdr도 설치되지 않는지, 알 수 없는

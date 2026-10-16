@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Install agent-camp on the CI runner the way a downstream would: nix-basecamp's
-# builder plus this module with lib.ciSettings (claude, codex, pi, goose, each
-# with its ACP adapter, and herdr), for the runner's user. Then check that
-# every one of them runs. Exports AGENT_CAMP_PATH for later steps.
-#   Linux: basecamp.lib.mkHome -> activate Home Manager.
-#   macOS: basecamp.lib.mkDarwin -> activate nix-darwin (sudo).
+# Install agent-camp on the CI runner the way a downstream would: a plain
+# Home Manager / nix-darwin configuration (ci/fixture.nix) plus this module
+# with lib.ciSettings (claude, codex, pi, goose, each with its ACP adapter, and
+# herdr), for the runner's user. Then check that every one of them runs.
+# Exports AGENT_CAMP_PATH for later steps.
+#   Linux: Home Manager -> activate it.
+#   macOS: nix-darwin with Home Manager -> activate it (sudo).
 set -euo pipefail
 user="$(id -un)"
 flake="${AGENT_CAMP_FLAKE:-$(pwd)}"
@@ -14,8 +15,8 @@ t0=$SECONDS
 case "$(uname -s)" in
   Linux)
     out="$(nix build --impure --no-link --print-out-paths --expr "
-      let f = builtins.getFlake \"path:$flake\"; in
-      (f.inputs.basecamp.lib.mkHome {
+      let f = builtins.getFlake \"path:$flake\"; x = import $flake/ci/fixture.nix { inherit (f.inputs) nixpkgs home-manager nix-darwin; }; in
+      (x.home {
         user = \"$user\"; homeDirectory = \"$HOME\";
         modules = [ f.homeModules.default f.lib.ciSettings ];
       }).activationPackage")"
@@ -23,8 +24,8 @@ case "$(uname -s)" in
     ;;
   Darwin)
     top="$(nix build --impure --no-link --print-out-paths --expr "
-      let f = builtins.getFlake \"path:$flake\"; in
-      (f.inputs.basecamp.lib.mkDarwin {
+      let f = builtins.getFlake \"path:$flake\"; x = import $flake/ci/fixture.nix { inherit (f.inputs) nixpkgs home-manager nix-darwin; }; in
+      (x.darwin {
         user = \"$user\";
         modules = [ { home-manager.sharedModules = [ f.homeModules.default f.lib.ciSettings ]; } ];
       }).system")"

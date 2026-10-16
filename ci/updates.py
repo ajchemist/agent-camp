@@ -68,7 +68,7 @@ def main():
             row(a["bin"], "nixpkgs (flake.lock)", goose_nix, lambda: gh("block/goose", "v"))
         if a["acp"]:
             row(a["acp"]["bin"], f"npm `{a['acp']['pkg']}`", "@latest", lambda p=a["acp"]["pkg"]: npm(p))
-    # goose is pinned too, but through nix-basecamp's nixpkgs: briefing only (ADR 0001).
+    # goose is pinned too, but through flake.lock's nixpkgs (a downstream's when it follows): briefing only (ADR 0001).
     tickets = {
         "bun": (pinned("bun.nix"), row("bun", "bun.nix (pinned)", pinned("bun.nix"), lambda: gh("oven-sh/bun", "bun-v"))),
         "herdr": (pinned("herdr.nix"), row("herdr", "herdr.nix (pinned)", pinned("herdr.nix"), lambda: gh("herdrdev/herdr", "v"))),
