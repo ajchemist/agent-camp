@@ -232,6 +232,16 @@ in
         '') wantedSkills)}
         ${lib.concatMapStringsSep "
 " (n: ''rm -f "$state/${n}"'') (lib.attrNames (lib.filterAttrs (_: o: !o.enable) cfg.skills))}
+        # One view per source: links to just its skills in ~/.agents/skills, for
+        # harnesses that take a whole directory (hermes' skills.external_dirs).
+        # Derived, never edited: rebuilt from scratch on every switch.
+        views="$HOME/.local/share/agent-camp/skills"
+        run rm -rf "$views"
+        ${lib.concatStringsSep "
+" (lib.mapAttrsToList (name: o: ''
+          run mkdir -p "$views/${name}"
+          for k in ${lib.concatStringsSep " " o.skills}; do run ln -s "$HOME/.agents/skills/$k" "$views/${name}/$k"; done
+        '') wantedSkills)}
       '');
 
       # One fnm root on every OS (fnm would pick ~/Library/Application Support

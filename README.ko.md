@@ -130,6 +130,17 @@ agent-camp.skills.mattpocock-skills.enable = false;                          # �
 - store 경로에서 온 스킬이 목록에서 빠지면 지워집니다. 다른 소스에서 온 스킬(lock 파일의
   `source`가 `/nix/store/…`가 아닌 것)은 건드리지 않습니다.
 
+**소스별 보기 폴더: 디렉터리 하나를 통째로 받는 하네스용.** switch마다
+`~/.local/share/agent-camp/skills/<name>/`을 다시 만듭니다. 그 소스의 스킬만
+`~/.agents/skills`에서 가리키는 symlink 모음입니다. 파생물이라 고치지 않고, 지워도 잃는 것이
+없습니다. hermes는 다른 에이전트의 디렉터리를 읽지 않고 프로필마다 홈이 따로라서, 각 프로필
+(기본 프로필 포함)이 자기 `config.yaml`에서 opt-in합니다:
+
+```yaml
+skills:
+  external_dirs: ["~/.local/share/agent-camp/skills/mattpocock-skills"]
+```
+
 ## 사용법
 
 ```nix

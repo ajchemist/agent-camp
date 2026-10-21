@@ -143,6 +143,18 @@ because at user scope they sit in every session's skill list; add them to
   Skills from any other source (the lock file's `source` is not `/nix/store/…`)
   are never touched.
 
+**Per-source views, for a harness that takes a whole directory.** Each switch
+rebuilds `~/.local/share/agent-camp/skills/<name>/`: symlinks to just that
+source's skills in `~/.agents/skills`. It is derived, never edited, and
+deleted with no loss. Hermes reads no other agent's directory and each
+profile is its own home, so a profile (the default one included) opts in
+through its `config.yaml`:
+
+```yaml
+skills:
+  external_dirs: ["~/.local/share/agent-camp/skills/mattpocock-skills"]
+```
+
 ## Using it
 
 ```nix
