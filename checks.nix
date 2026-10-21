@@ -116,11 +116,14 @@ in
       sources = (import ./skill-sources { inherit pkgs; }).sources;
       off = homeWith [{ agent-camp.skills.mattpocock-skills.enable = false; }];
       adds = c: lib.hasInfix "skills_cli add" c.home.activation.userSkills.data;
+      views = c: lib.hasInfix ''$views/mattpocock-skills"'' c.home.activation.userSkills.data;
     in
     assert lib.assertMsg (lib.all (k: lib.elem k sources.mattpocock-skills.skills)
       [ "grill-me" "grilling" "domain-modeling" "tdd" "research" "prototype" ]) "workflow dependencies missing";
     assert lib.assertMsg (adds bare) "default skills not added";
     assert lib.assertMsg (!adds off) "disabled skill source still added";
+    assert lib.assertMsg (views bare) "no view for a wanted skill source";
+    assert lib.assertMsg (!views off) "view for a disabled skill source";
     pkgs.runCommand "agent-camp-skills" { } ''
       ${lib.concatStrings (lib.mapAttrsToList (n: src: lib.concatMapStrings (k: ''
         f=$(find ${src.src} -path "*/${k}/SKILL.md" | head -1)
