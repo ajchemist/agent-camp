@@ -62,7 +62,7 @@ rendered per harness ([ADR 0003](docs/adr/0003-curated-agents.md)):
 
 | agent | what it is | default harnesses |
 |---|---|---|
-| `ponytail` | a senior engineer that reads [ponytail](https://github.com/DietrichGebert/ponytail)'s skills from a pinned store path, without installing them as skills | claude, codex |
+| `ponytail` | a senior engineer that reads [ponytail](https://github.com/DietrichGebert/ponytail)'s skills from a pinned store path, without installing them as skills; it edits your working tree and the main agent takes its work over | claude, codex |
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # also ~/.agents/agents/ponytail.md

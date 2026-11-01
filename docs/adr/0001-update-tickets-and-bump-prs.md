@@ -4,7 +4,7 @@ Status: accepted (2026-10-07). Defaults chosen in one grilling session; any line
 
 The daily briefing (`ci/updates.py`) already compares every tool with upstream. We turn it into work items:
 
-1. **Scope**: only pinned tools get an update ticket: `bun` (bun.nix) and `herdr` (herdr.nix). @latest tools (agent CLIs and ACP adapters) stay briefing-only: a new release needs no commit, and the weekly e2e in ci.yml already catches breakage.
+1. **Scope**: only pinned tools get an update ticket: `bun` (bun.nix), `herdr` (herdr.nix), and the source trees pinned since: a curated agent's upstream (`ponytail`, ADR 0003) and user-scope skill sources (`mattpocock-skills`, ADR 0004). The tool list lives in `ci/bump.py` and the `bump.yml` choices. @latest tools (agent CLIs and ACP adapters) stay briefing-only: a new release needs no commit, and the weekly e2e in ci.yml already catches breakage.
 2. **goose is excluded**: its pin is nixpkgs through `flake.lock` → nix-basecamp. Bumping it means `nix flake update basecamp`, which moves everything, and upstream releases often aren't in nixpkgs yet. It stays a briefing row; the lock is nix-basecamp's job.
 3. **One open ticket per tool**: found by labels `update` + `update:<tool>`, never by title (humans may edit titles). When upstream moves again, the same ticket's title and body are rewritten (`0.9.1 → 0.9.3`). A new major version only adds a warning line, not a new ticket.
 4. **Auto-close**: if the pin already equals upstream while a ticket is open (bumped without referencing it), the workflow comments and closes it.
