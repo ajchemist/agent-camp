@@ -58,7 +58,7 @@ agent-camp가 제공하는 서브에이전트 프로필입니다. 각각 `curate
 
 | 에이전트 | 설명 | 기본 하네스 |
 |---|---|---|
-| `ponytail` | [ponytail](https://github.com/DietrichGebert/ponytail)의 스킬을 스킬로 설치하지 않고, 고정된 store 경로에서 읽어 따르는 시니어 엔지니어 | claude, codex |
+| `ponytail` | [ponytail](https://github.com/DietrichGebert/ponytail)의 스킬을 스킬로 설치하지 않고, 고정된 store 경로에서 읽어 따르는 시니어 엔지니어. 작업 트리를 직접 고치고, 메인 에이전트가 그 작업을 이어받음 | claude, codex |
 
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # ~/.agents/agents/ponytail.md도 설치
