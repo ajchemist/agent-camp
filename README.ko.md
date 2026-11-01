@@ -101,8 +101,8 @@ curated agent가 하나라도 있으면, switch가 `~/.claude/settings.json`의 
 버전은 nix가 `skill-sources/<name>/source.nix`로 고정하고, 배치는
 [skills CLI](https://github.com/vercel-labs/skills)가 합니다.
 `skills add <store 경로> -g -a <agent>… -s <skill>…`가 각 스킬을 `~/.agents/skills`에
-복사하고 나머지 에이전트에 symlink를 겁니다(`claude-code`처럼 universal이 아닌
-에이전트만 고르면 그 디렉터리에 바로 복사합니다).
+복사하고 나머지 에이전트에 symlink를 겁니다(전역 설치는 `claude-code` 하나만 골라도
+`~/.agents/skills`에 둡니다).
 
 | 소스 | 기본 스킬 | 기본 에이전트 |
 |---|---|---|

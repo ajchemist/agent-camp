@@ -110,8 +110,8 @@ scope instead of in each repository's `skills-lock.json` or plugin settings
 ([ADR 0004](docs/adr/0004-user-scope-skills.md)). Nix pins each source in
 `skill-sources/<name>/source.nix`; the [skills CLI](https://github.com/vercel-labs/skills)
 lays them out: `skills add <store path> -g -a <agent>… -s <skill>…` copies each
-skill to `~/.agents/skills` and symlinks it into the other agents (with only
-non-universal agents such as `claude-code`, it copies straight into theirs).
+skill to `~/.agents/skills` and symlinks it into the other agents (global installs
+keep `~/.agents/skills` even for `claude-code` alone).
 
 | source | default skills | default agents |
 |---|---|---|
