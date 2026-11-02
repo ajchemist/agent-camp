@@ -9,7 +9,11 @@ on:
 
 jobs:
   gate:
-    if: github.event_name == 'issues' || github.event.action != 'synchronize'
+    # The lab's drift bumps of the designer's upstreams skip the gate (docs/adr/0006); the bot login is App-reserved.
+    if: >-
+      github.event_name == 'issues' || (github.event.action != 'synchronize' && !(
+        github.event.pull_request.user.login == 'agent-camp-lab-writer[bot]' &&
+        startsWith(github.event.pull_request.head.ref, 'update/designer-')))
     permissions: { issues: write, pull-requests: write }
     uses: ajchemist/.github/.github/workflows/approved-gate.yml@v1
   ai-coauthors:
