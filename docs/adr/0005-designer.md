@@ -4,7 +4,7 @@ Status: proposed (2026-10-11).
 
 `designer` is the second curated agent (ADR 0003): a design engineer for a
 product's typography, spacing, layout and motion, carried through DESIGN.md.
-It extends ADR 0003 in four places.
+It extends ADR 0003 in five places.
 
 - **One agent, modes inside.** The work spans reference analysis, writing
   DESIGN.md, building, and critique. They share one prompt and one set of
@@ -29,6 +29,13 @@ It extends ADR 0003 in four places.
   type and spacing scales) lives in `curated-agents/designer/skills/` and is
   read from the store like the rest. Browser support for CSS motion moves
   faster than any upstream would track, which is why that one is kept here.
+- **Activation, global by default.** Amended 2026-11-02 (#22): the designer
+  is no longer delegated to only where a repository's AGENTS.md carries its
+  delegation rules. Three layers decide, the nearer winning: the module's
+  setting (`global`, the designer's default; `opt-in`; `off`), one line in a
+  repository's AGENTS.md that switches it off or on, and an environment
+  variable that disables it for a session. Session over repository over
+  module. Built in #25.
 
 Also: `replaceBuiltins` may be on for one agent at most; two would write the
 same built-in's file.
