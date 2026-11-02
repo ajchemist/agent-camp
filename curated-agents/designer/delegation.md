@@ -11,14 +11,15 @@ If a subagent named `designer` is available, hand it design work on a
 product's interface: typography, spacing, layout and motion, carried through
 DESIGN.md. If it is not available, ignore this section.
 
-**Delegate** (naming the mode):
+**Delegate** (naming the mode), scaled to the work:
+- Simple work (a component, a fix, a change that fits the existing styles) →
+  one `build`, which ends with its own check pass. No `direction`, DESIGN.md,
+  PRODUCT.md or `critique`.
 - Reference products or sites to learn from → `reference`
-- A new or replaced design direction, or DESIGN.md is missing → `direction`
-- Building or changing UI, or adding motion, against DESIGN.md → `build`
-- A small change that fits the existing styles (a component's states, one
-  element's spacing, accessible colours for a few badges) → `build`, with or
-  without DESIGN.md
-- Checking a build, after every `build` → `critique`
+- No design to follow (no DESIGN.md, and the brief and existing page do not
+  settle it), or a replaced design direction → `direction`
+- Building or changing UI, or adding motion → `build`
+- Checking complex or motion work, after its `build` → `critique`
 
 **Do it yourself** (do not delegate):
 - Copy, one-line style fixes, questions about the design
@@ -29,23 +30,26 @@ DESIGN.md. If it is not available, ignore this section.
   likely answers. A question the brief or repository already answers is no
   gap: continue the same instance with that answer, and list it as an
   assumption in your final answer.
-- Approving DESIGN.md: show the user what `direction` wrote, or the
-  DESIGN.md proposals another mode returned, and apply what they accept.
-  When `direction` wrote DESIGN.md from the brief's own facts, skip that
-  round before `build` and list DESIGN.md as an assumption in your final
-  answer
+- Never stop to ask after any mode on a complete brief or in a
+  non-interactive run: not to approve what `direction` wrote, not to choose
+  among options. Its likely answers go under Risks, listed as assumptions in
+  your final answer, and the work goes on to a `build`. Only in an
+  interactive run whose brief left the design open, show the user what
+  `direction` wrote, or the DESIGN.md proposals another mode returned, and
+  apply what they accept.
 - A request that conflicts with DESIGN.md: ask the user before the build and
   apply what they accept to DESIGN.md yourself (or through `direction`).
   Never tell `build` or `critique` to edit DESIGN.md.
 
-**The flow**: `reference` → `direction` → user approves DESIGN.md (unless
-written from the brief's own facts) → `build` →
-`critique` → on FAIL, back to the same `build` instance with the critique
-file → `critique` again. Stop after three rounds and bring the remaining FAILs
-to the user. Number the rounds yourself and put "round N of 3" in each
-critique's delegation message; critique files from earlier tasks do not
-count. If an instance was cut off, delete the temp dot-directory it left
-before the next round.
+**The flow**: simple work is one `build`. Complex work: `reference` (when
+there are references) → `direction` (when there is no design to follow) →
+`build` → `critique` (complex or motion work). One critique round, unless it
+finds a floor defect: then back to the same `build` instance with the
+critique file → `critique` again, and stop there; bring remaining FAILs to
+the user. Taste FAILs are advisory: pass them on, do not loop on them. Put
+"round N of 2" in each critique's delegation message; critique files from
+earlier tasks do not count. If an instance was cut off, delete the temp
+dot-directory it left before the next round.
 
 **Instances**:
 - Continue the same `build` instance across its Info needed and fix rounds
@@ -53,17 +57,21 @@ before the next round.
   its route and context.
 - Start every `critique` as a fresh instance. Never ask a `build` instance to critique.
 - `reference` and `direction` may be one instance; `build` starts fresh with
-  DESIGN.md as its brief.
+  DESIGN.md (or, where the brief allowed no DESIGN.md, `direction`'s Design
+  decisions) as its brief.
 
 **In the delegation message, include**: mode / target / goal / done criteria /
 out of scope / for `reference`, the references / what the brief permits, in
-its words (a library it allows is approved). The subagent does not see
+its words (a library it allows is approved; the files it allows bound where
+DESIGN.md and PRODUCT.md may go). The subagent does not see
 this conversation; the message is all it knows. Say what, not how: leave the
 route, technique and file locations to designer.
 
 **When it returns**, its files are in the working tree. Take the work over:
-check Changed against the diff and rerun Verified, then pass Verified, Not
-checked and Risks / needs checking to the user as-is. On Info needed, ask the
+check Changed against the diff and rerun Verified, except renders: designer's
+one browser check is the render, and what it could not render stays Not
+checked. Pass Verified, Not checked and Risks / needs checking to the user
+as-is. On Info needed, ask the
 user those questions with its likely answers, then continue the same
 instance with the answers where the harness can (Claude Code: SendMessage to
 the agentId its return ends with; Codex: followup_task to it; both work in a
