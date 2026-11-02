@@ -5,10 +5,10 @@
 { pkgs }:
 let
   inherit (pkgs) lib stdenvNoCC fetchurl;
-  version = "0.9.1";
+  version = "0.9.5";
   bins = {
-    aarch64-darwin = { asset = "herdr-macos-aarch64"; hash = "sha256-X8en5636ylb6gKqJ3LAlaTNXJo2rgoW5zi0IojE8id4="; };
-    x86_64-linux = { asset = "herdr-linux-x86_64"; hash = "sha256-KgL+0WvrZR7wBuHUPwSPZSyk3FitBTzS1ERQVj1cVLc="; };
+    aarch64-darwin = { asset = "herdr-macos-aarch64"; hash = "sha256-+3fCIyoFqANUITgsiUOS9BdOTjihjkivPdApAVfDp+I="; };
+    x86_64-linux = { asset = "herdr-linux-x86_64"; hash = "sha256-FNnovItKngEY13wyJm921GHwm0A0LrI3UpYL2J9Zkp0="; };
   };
   bin = bins.${stdenvNoCC.hostPlatform.system}
     or (throw "herdr: no release binary for ${stdenvNoCC.hostPlatform.system}");
