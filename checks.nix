@@ -28,6 +28,7 @@ in
   activation-shellcheck = pkgs.runCommand "agent-camp-activation-shellcheck" { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
     shellcheck -s bash -S warning ${activationScript bare}
     shellcheck -s bash -S warning ${activationScript withPlugin}
+    shellcheck -s bash -S warning ${activationScript (homeWith [{ agent-camp.curated-agents.sharedInstructions = "~/my notes/AGENTS.md"; }])}
     touch $out
   '';
 
@@ -131,6 +132,10 @@ in
       cases = lib.concatMap (n: map (v: { inherit n v; c = only n v; }) [ "global" "opt-in" "off" ]) names;
       legacyOff = homeWith [{ agent-camp.curated-agents = lib.genAttrs names (_: { enable = false; }); }];
       noHook = c: !(c.home.file ? ".local/share/agent-camp/session-start");
+      # sharedInstructions: the defaults' rules in one file, and with every agent off.
+      sharedOn = homeWith [{ agent-camp.curated-agents.sharedInstructions = "~/.agents/AGENTS.md"; }];
+      sharedOff = homeWith [{ agent-camp.curated-agents = lib.genAttrs names (_: { activation = "off"; }) // { sharedInstructions = "~/.agents/AGENTS.md"; }; }];
+      sharedRelative = !(builtins.tryEval (mkHome [ module { agent-camp.curated-agents.sharedInstructions = "x/AGENTS.md"; } ]).activationPackage.drvPath).success;
     in
     assert lib.assertMsg (bare.agent-camp.curated-agents.designer.activation == "global") "designer default is not global";
     assert lib.assertMsg (bare.agent-camp.curated-agents.ponytail.activation == "opt-in") "ponytail default is not opt-in";
@@ -143,6 +148,8 @@ in
     assert lib.all (n: lib.assertMsg (lib.hasPrefix "## Delegating to ${n}\n\n**On or off**: the line `curated-agents: ${n} off`" curated.agents.${n}.delegation
       && lib.hasInfix "`curated-agents: ${n} on`" curated.agents.${n}.delegation) "${n}/delegation.md does not open with the repository line") names;
     assert lib.assertMsg (claudeRules legacyOff == "" && noHook legacyOff) "enable = false still installs rules or the hook";
+    assert lib.assertMsg (claudeRules sharedOn == "" && !noHook sharedOn) "sharedInstructions: claude rules file still written, or the hook gone";
+    assert lib.assertMsg sharedRelative "sharedInstructions: a relative path is accepted";
     assert lib.assertMsg (!noHook bare && lib.all ({ v, c, ... }: (v == "off") == noHook c) cases) "session hook script placed wrongly";
     pkgs.runCommand "agent-camp-activation" { } ''
       export HOME=$PWD
@@ -181,6 +188,30 @@ in
       ${jq} -e '.hooks.SessionStart | length == 2 and .[0].hooks[0].command == "mine"' .claude/settings.json >/dev/null || fail "hook not added after the user's"
       ${legacyOff.home.activation.curatedSettings.data}
       ${jq} -e '.hooks.SessionStart == [{"hooks":[{"type":"command","command":"mine"}]}]' .claude/settings.json >/dev/null || fail "hook left behind or user's hook lost"
+
+      # sharedInstructions: null -> set takes codex's block out and puts one in
+      # the shared file (created when missing).
+      rm -rf .codex .claude .local .agents; mkdir -p .codex; echo mine > .codex/AGENTS.md
+      ${bare.home.activation.curatedInstructions.data}
+      grep -q '^## Delegating to designer$' .codex/AGENTS.md || fail "codex block missing before sharedInstructions"
+      ${sharedOn.home.activation.curatedInstructions.data}
+      [ "$(cat .codex/AGENTS.md)" = mine ] || fail "codex block left after sharedInstructions"
+      [ "$(grep -c '^## Delegating to designer$' .agents/AGENTS.md)" = 1 ] || fail "shared file not created with the block"
+      # Codex linked to the shared file: no warning, the link kept, one block
+      # beside the user's text over two switches, gone with the last agent.
+      rm -rf .codex .agents; mkdir -p .codex .agents; echo ours > .agents/AGENTS.md; ln -s ../.agents/AGENTS.md .codex/AGENTS.md
+      err=$( { ${sharedOn.home.activation.curatedInstructions.data}
+        ${sharedOn.home.activation.curatedInstructions.data}
+      } 2>&1 >/dev/null )
+      [ -z "$err" ] || fail "sharedInstructions warned: $err"
+      [ -L .codex/AGENTS.md ] || fail "codex link replaced"
+      head -1 .agents/AGENTS.md | grep -qx ours || fail "shared: user text lost"
+      for n in designer ponytail; do
+        [ "$(grep -c "^## Delegating to $n\$" .agents/AGENTS.md)" = 1 ] || fail "shared: $n block missing or doubled"
+      done
+      [ "$(grep -c 'agent-camp curated agents: begin' .agents/AGENTS.md)" = 1 ] || fail "shared: block doubled"
+      ${sharedOff.home.activation.curatedInstructions.data}
+      [ "$(cat .agents/AGENTS.md)" = ours ] || fail "shared: block not removed with every agent off"
 
       # The hook prints a notice per named agent, nothing without the variable.
       h=${bare.home.file.".local/share/agent-camp/session-start".source}
