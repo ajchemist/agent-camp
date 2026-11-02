@@ -105,12 +105,32 @@ A later layer wins: **session over repository over module**.
      when no agent is installed. Codex reads only that one file and includes
      nothing from it. The rest of the file stays as you wrote it; edits inside
      the block are lost. If the file is a link (for example to a shared
-     `~/.agents/AGENTS.md`), the switch leaves it alone and warns: add the
-     rules where the link points yourself. A `~/.codex/AGENTS.override.md`
+     `~/.agents/AGENTS.md`), the switch leaves it alone and warns: set
+     `sharedInstructions` (below) to the file the link points to. A `~/.codex/AGENTS.override.md`
      replaces `AGENTS.md`, block and all.
    - kimi: none. kimi-cli reads `AGENTS.md` only inside the project, so an
      agent installed for kimi is used only in a repository whose `AGENTS.md`
      carries its rules.
+
+   **One shared file**: if every harness reads one instructions file you
+   write, for example `~/.agents/AGENTS.md` with `~/.codex/AGENTS.md` a
+   symlink to it and `~/.claude/CLAUDE.md` importing it with
+   `@~/.agents/AGENTS.md`, point the module at it:
+
+   ```nix
+   agent-camp.curated-agents.sharedInstructions = "~/.agents/AGENTS.md"; # or an absolute path
+   ```
+
+   The rules then go into that file only, as the same marked block at its
+   end: rewritten on every switch (edits inside it are lost), removed when no
+   agent is installed, the rest of the file kept. The file is created with
+   just the block if missing, and must be a regular file (a link is left
+   alone with a warning). The module writes no claude rules file and no
+   `~/.codex/AGENTS.md` block, and takes out the ones an earlier switch
+   wrote; `~/.codex/AGENTS.md` linking to the shared file is the expected
+   setup and gets no warning. A harness that does not read the shared file
+   gets no rules. Unsetting the option later leaves the block in the shared
+   file: delete it by hand.
 
 2. **Repository**: one line in its `AGENTS.md`, the same shape for every agent:
 
@@ -149,7 +169,7 @@ A later layer wins: **session over repository over module**.
 | | module (user-level rules) | repository line | enforced repository deny | session variable |
 |---|---|---|---|---|
 | claude | yes | yes | `Agent(<name>)` | yes |
-| codex | yes, unless `~/.codex/AGENTS.md` is a link | yes | no | yes, once the hook is trusted |
+| codex | yes, unless `~/.codex/AGENTS.md` is a link (fine with `sharedInstructions`) | yes | no | yes, once the hook is trusted |
 | kimi | no | only where `AGENTS.md` carries the rules | no | no |
 
 ### Claude Code read rule

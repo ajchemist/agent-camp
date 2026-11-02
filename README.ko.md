@@ -100,10 +100,26 @@ ponytail을 만들고 검증한 과정:
      switch마다 다시 쓰고, 설치된 에이전트가 없으면 지웁니다. Codex는 이 파일 하나만 읽고
      다른 파일을 포함하지 않습니다. 블록 밖은 사용자가 쓴 그대로 두고, 블록 안을 고치면
      사라집니다. 파일이 링크이면(예: 공유하는 `~/.agents/AGENTS.md`로) 건드리지 않고 경고만
-     내니, 링크가 가리키는 곳에 규칙을 직접 넣으세요. `~/.codex/AGENTS.override.md`가 있으면
+     내니, 링크가 가리키는 파일을 `sharedInstructions`(아래)로 지정하세요. `~/.codex/AGENTS.override.md`가 있으면
      블록째 `AGENTS.md`를 대신합니다.
    - kimi: 없음. kimi-cli는 프로젝트 안의 `AGENTS.md`만 읽으므로, kimi용으로 설치한
      에이전트는 `AGENTS.md`에 규칙을 담은 저장소에서만 쓰입니다.
+
+   **공유 파일 하나**: 모든 하네스가 사용자가 쓰는 지시문 파일 하나를 읽는다면(예:
+   `~/.agents/AGENTS.md`에 `~/.codex/AGENTS.md`는 심볼릭 링크로, `~/.claude/CLAUDE.md`는
+   `@~/.agents/AGENTS.md`로 가져옴) 모듈에 그 파일을 알려 주세요:
+
+   ```nix
+   agent-camp.curated-agents.sharedInstructions = "~/.agents/AGENTS.md"; # 또는 절대 경로
+   ```
+
+   그러면 규칙은 그 파일에만, 끝의 같은 표시된 블록으로 들어갑니다. switch마다 다시 쓰고
+   (블록 안을 고치면 사라짐), 설치된 에이전트가 없으면 지우며, 블록 밖은 그대로 둡니다.
+   파일이 없으면 블록만 담아 만들고, 일반 파일이어야 합니다(링크이면 경고하고 건드리지
+   않음). 모듈은 claude 규칙 파일도 `~/.codex/AGENTS.md` 블록도 쓰지 않고, 앞선 switch가
+   쓴 것은 지웁니다. `~/.codex/AGENTS.md`가 공유 파일을 가리키는 링크인 것이 예상한 구성이라
+   경고하지 않습니다. 공유 파일을 읽지 않는 하네스는 규칙을 받지 못합니다. 나중에 옵션을
+   지워도 공유 파일의 블록은 남으니 직접 지우세요.
 
 2. **저장소**: `AGENTS.md`의 한 줄. 모든 에이전트가 같은 모양입니다.
 
@@ -139,7 +155,7 @@ ponytail을 만들고 검증한 과정:
 | | 모듈 (사용자 수준 규칙) | 저장소 줄 | 강제 deny | 세션 변수 |
 |---|---|---|---|---|
 | claude | 예 | 예 | `Agent(<name>)` | 예 |
-| codex | 예, `~/.codex/AGENTS.md`가 링크가 아니면 | 예 | 아니오 | 예, 훅을 신뢰한 뒤 |
+| codex | 예, `~/.codex/AGENTS.md`가 링크가 아니면(`sharedInstructions`면 링크도 됨) | 예 | 아니오 | 예, 훅을 신뢰한 뒤 |
 | kimi | 아니오 | `AGENTS.md`에 규칙이 있을 때만 | 아니오 | 아니오 |
 
 ### Claude Code 읽기 규칙

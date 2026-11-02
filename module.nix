@@ -16,6 +16,12 @@ let
     (lib.filterAttrs (n: _: on n && cfg.curated-agents.${n}.harnesses.${h}) curated.agents);
   # Their delegation rules, for the harness's user-level instructions ("" for none).
   instructionsFor = h: lib.optionalString (installedFor h != { }) (curated.instructions (installedFor h));
+  # One file every harness reads (sharedInstructions): the rules of the agents
+  # installed for any harness with instructions, in place of each harness's own.
+  shared = cfg.curated-agents.sharedInstructions;
+  sharedFile = if lib.hasPrefix "~/" shared then ''"$HOME"/${lib.escapeShellArg (lib.removePrefix "~/" shared)}'' else lib.escapeShellArg shared;
+  sharedAgents = lib.foldl' (acc: h: acc // installedFor h) { }
+    (lib.attrNames (lib.filterAttrs (_: ad: ad ? instructions) curated.adapters));
   # The session hook: one fixed path, so a harness that trusts a hook by its
   # definition (Codex) keeps trusting it across switches.
   sessionHook = ".local/share/agent-camp/session-start";
@@ -125,7 +131,22 @@ in
         default = ad.default;
         description = "Write the ${name} agent to ~/${ad.file name}.";
       }) curated.adapters;
-    }) curated.agents;
+    }) curated.agents // {
+      sharedInstructions = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "~/.agents/AGENTS.md";
+        description = ''
+          One instructions file every harness reads (`~/`-prefixed or absolute),
+          e.g. ~/.codex/AGENTS.md a link to it and ~/.claude/CLAUDE.md importing
+          it with `@`. The curated agents' delegation rules then go there, as a
+          marked block rewritten on every switch (the file is created if
+          missing and must be a regular file), and not to the claude rules
+          file or the ~/.codex/AGENTS.md block. A harness that does not read
+          the file gets no rules. null: each harness's own file.
+        '';
+      };
+    };
     skills = lib.mapAttrs (name: src: {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -154,6 +175,9 @@ in
         # Each would write the same built-in's file.
         assertion = lib.count (n: on n && cfg.curated-agents.${n}.replaceBuiltins) (lib.attrNames curated.agents) <= 1;
         message = "agent-camp.curated-agents: replaceBuiltins is on for more than one agent; only one can take a built-in's place.";
+      } {
+        assertion = shared == null || lib.hasPrefix "/" shared || lib.hasPrefix "~/" shared;
+        message = "agent-camp.curated-agents.sharedInstructions: give an absolute or ~/-prefixed path, not ${toString shared}";
       }];
 
       home.packages = [
@@ -174,7 +198,7 @@ in
       home.file = lib.listToAttrs (map (p: lib.nameValuePair p.path { source = p.src; })
         (lib.filter (p: !p.copy) curatedFiles))
         // lib.mapAttrs' (h: ad: lib.nameValuePair ad.instructions { text = instructionsFor h; })
-          (lib.filterAttrs (h: ad: ad ? instructions && !(ad.instructionsShared or false) && instructionsFor h != "") curated.adapters)
+          (lib.filterAttrs (h: ad: shared == null && ad ? instructions && !(ad.instructionsShared or false) && instructionsFor h != "") curated.adapters)
         // lib.optionalAttrs (hookAdapters != { }) {
           # AGENT_CAMP_DISABLE_AGENTS="designer,ponytail": a notice per name.
           ${sessionHook}.source = pkgs.writeShellScript "agent-camp-session-start" ''
@@ -189,7 +213,8 @@ in
       # The delegation rules in a user-level file the user owns (Codex's
       # ~/.codex/AGENTS.md): a marked block at its end, rewritten on every
       # switch and removed when no agent is installed. The rest of the file
-      # stays as it is; a link is left alone.
+      # stays as it is; a link is left alone. With sharedInstructions, that
+      # block goes and the shared file takes the one block instead.
       home.activation.curatedInstructions = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
         awk = "${pkgs.gawk}/bin/awk";
       in ''
@@ -221,8 +246,11 @@ in
           fi
         }
         ${lib.concatStrings (lib.mapAttrsToList (h: ad: ''
-          put_block "$HOME/${ad.instructions}" ${lib.optionalString (instructionsFor h != "") (pkgs.writeText "agent-camp-${h}-instructions.md" (instructionsFor h))}
+          put_block "$HOME/${ad.instructions}" ${lib.optionalString (shared == null && instructionsFor h != "") (pkgs.writeText "agent-camp-${h}-instructions.md" (instructionsFor h))}
         '') (lib.filterAttrs (_: ad: ad.instructionsShared or false) curated.adapters))}
+        ${lib.optionalString (shared != null) ''
+          put_block ${sharedFile} ${lib.optionalString (sharedAgents != { }) (pkgs.writeText "agent-camp-shared-instructions.md" (curated.instructions sharedAgents))}
+        ''}
       '');
 
       # The adapters that need a regular file get a copy, read-only like the
