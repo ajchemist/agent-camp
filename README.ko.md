@@ -64,16 +64,83 @@ agent-camp가 제공하는 서브에이전트 프로필입니다. 각각 `curate
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # ~/.agents/agents/ponytail.md도 설치
 agent-camp.curated-agents.ponytail.replaceBuiltins = true; # 내장 코딩 서브에이전트도 대체 (kimi `coder`), 에이전트 하나만
-agent-camp.curated-agents.ponytail.enable = false;         # 아예 설치하지 않음
+agent-camp.curated-agents.ponytail.activation = "off";     # 아예 설치하지 않음 (활성화 참고)
 ```
 
 파일 위치: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi는 본체에 서브에이전트가 없어서 아직 설치하지 않습니다.
 
-설치만으로는 위임되지 않습니다. 에이전트의 위임 규칙(`curated-agents/<name>/delegation.md`)을
-저장소 `AGENTS.md`에 넣어야 합니다. ponytail을 만들고 검증한 과정:
+ponytail을 만들고 검증한 과정:
 [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md). 하네스별로 무엇을
 컨텍스트에 넣고 어떻게 뺄 수 있는지: [docs/harness-context.md](docs/harness-context.md).
+
+### 활성화
+
+설치된 에이전트는 그 위임 규칙(`curated-agents/<name>/delegation.md`)이 메인 에이전트의
+지시문에 있고 켜져 있을 때만 위임받습니다. 모든 curated agent가 같은 방식으로 세 층에서
+정해지고, 뒤의 층이 이깁니다: **세션 > 저장소 > 모듈**.
+
+1. **모듈**, 배포할 때: `agent-camp.curated-agents.<name>.activation`.
+
+   | 값 | 설치되는 것 | 규칙이 켜지는 곳 |
+   |---|---|---|
+   | `global` (designer 기본값) | 에이전트, 그리고 각 하네스의 사용자 수준 지시문에 그 규칙 | 모든 저장소. 저장소 `AGENTS.md`가 끄면 제외 |
+   | `opt-in` (ponytail 기본값) | 같음 | 저장소 `AGENTS.md`가 켜거나, 규칙을 직접 담고 있는(예전처럼 붙여 넣은) 저장소만 |
+   | `off` | 없음 | 없음 |
+
+   예전 옵션 `enable = false`는 `"off"`와 같습니다.
+
+   규칙은 각 하네스가 사용자 수준 지시문을 읽는 곳에 들어가되, 사용자가 쓰는 파일을
+   차지하지 않습니다.
+
+   - claude: `~/.claude/rules/agent-camp-curated-agents.md`, 모듈 전용 파일입니다. Claude
+     Code는 사용자 규칙을 매 세션 `~/.claude/CLAUDE.md`와 함께 읽고, `CLAUDE.md`는 그대로
+     사용자 것입니다.
+   - codex: `~/.codex/AGENTS.md` 끝의 표시된 블록(`<!-- agent-camp curated agents: begin … end -->`).
+     switch마다 다시 쓰고, 설치된 에이전트가 없으면 지웁니다. Codex는 이 파일 하나만 읽고
+     다른 파일을 포함하지 않습니다. 블록 밖은 사용자가 쓴 그대로 두고, 블록 안을 고치면
+     사라집니다. 파일이 링크이면(예: 공유하는 `~/.agents/AGENTS.md`로) 건드리지 않고 경고만
+     내니, 링크가 가리키는 곳에 규칙을 직접 넣으세요. `~/.codex/AGENTS.override.md`가 있으면
+     블록째 `AGENTS.md`를 대신합니다.
+   - kimi: 없음. kimi-cli는 프로젝트 안의 `AGENTS.md`만 읽으므로, kimi용으로 설치한
+     에이전트는 `AGENTS.md`에 규칙을 담은 저장소에서만 쓰입니다.
+
+2. **저장소**: `AGENTS.md`의 한 줄. 모든 에이전트가 같은 모양입니다.
+
+   ```
+   curated-agents: designer off
+   curated-agents: ponytail on
+   ```
+
+   규칙의 첫 문단이 메인 에이전트에게 이 줄을 따르라고 합니다. 모델이 따르는 규칙이지
+   강제가 아닙니다. Claude Code에서 강제하는 방법은 저장소 `.claude/settings.json`의 deny
+   규칙이고, 모델이 무엇을 읽든 Claude Code가 막습니다:
+
+   ```json
+   { "permissions": { "deny": ["Agent(designer)"] } }
+   ```
+
+   Codex와 kimi에는 에이전트별 deny가 없습니다.
+
+3. **세션**: `AGENT_CAMP_DISABLE_AGENTS="designer,ponytail" claude` (쉼표나 공백으로 구분).
+   모듈이 설치하는 세션 시작 훅(`~/.local/share/agent-camp/session-start`)이 이름마다
+   "Do not delegate to the designer subagent in this session"을 출력하고, 하네스가 이를
+   컨텍스트에 넣습니다. 끄기만 하고 켜지는 못합니다.
+
+   - claude: `~/.claude/settings.json`의 `hooks.SessionStart`에, 아래 읽기 규칙과 같은
+     방식으로 합칩니다. 시작, resume, `/clear`, 압축 때 실행됩니다.
+   - codex: `~/.codex/hooks.json`의 `hooks.SessionStart`에 같은 방식으로 합칩니다. Codex는
+     신뢰한 훅만 실행하므로, 첫 switch 뒤에 TUI에서 `/hooks`를 한 번 열어 신뢰해 주세요. 훅
+     명령은 고정 경로라서, 스크립트 내용이 바뀌는 switch 뒤에도 신뢰가 유지됩니다.
+   - kimi: 없음. kimi-cli는 SessionStart 훅을 실행하지만 출력을 버립니다.
+
+   훅은 그 하네스로 가는 curated agent가 하나라도 있으면 설치됩니다.
+
+| | 모듈 (사용자 수준 규칙) | 저장소 줄 | 강제 deny | 세션 변수 |
+|---|---|---|---|---|
+| claude | 예 | 예 | `Agent(<name>)` | 예 |
+| codex | 예, `~/.codex/AGENTS.md`가 링크가 아니면 | 예 | 아니오 | 예, 훅을 신뢰한 뒤 |
+| kimi | 아니오 | `AGENTS.md`에 규칙이 있을 때만 | 아니오 | 아니오 |
 
 ### Claude Code 읽기 규칙
 
@@ -86,6 +153,8 @@ curated agent가 하나라도 있으면, switch가 `~/.claude/settings.json`의 
 - `permissions.allow`만 바꿉니다. 지난번에 모듈이 넣은 규칙(`~/.local/state/agent-camp/claude-allow`에
   기록)을 빼고, 지금 필요한 규칙을 사용자 규칙 뒤에 넣습니다. 다른 키와 규칙은 그대로 둡니다.
 - 규칙이 바뀔 때만 파일을 씁니다. Claude Code용 curated agent를 모두 끄면 규칙도 빠집니다.
+- 세션 훅도 같은 방식으로 `hooks.SessionStart`에 들어가고(state: `claude-session-start`),
+  Codex 훅은 `~/.codex/hooks.json`에 들어갑니다(`codex-session-start`).
 - 파일이 링크이거나 JSON이 깨져 있으면 건드리지 않고 경고만 냅니다.
 
 알아 둘 점:
@@ -189,6 +258,8 @@ hermes의 node shim, uv standalone 바이너리, fnm node 아래의 전역 npm �
   - 답 파일 로직(`choice.sh`)
   - 모듈만 import하면 하네스도 herdr도 설치되지 않는지, 알 수 없는
     하네스는 거부되는지
+  - curated agent의 activation마다 각 하네스의 사용자 수준 지시문과 훅 파일에 무엇이
+    들어가는지
   - ask, plan 스크립트
 - **deploy**: 두 시스템 모두 check를 통과해야 실행됩니다. `lib.ciSettings`로
   claude, codex, pi, goose와 각각의 어댑터, herdr를 runner에 배포합니다. 모든 명령이

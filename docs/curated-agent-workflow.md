@@ -9,7 +9,7 @@ A curated agent has two halves, and each one needs its own text:
 | half | file | says | seen |
 |---|---|---|---|
 | the subagent | `curated-agents/<name>/prompt.md` + `description` | **what** it does and **how it reports** | prompt: by the subagent; description: by the main agent, in every session, as one line in its list of subagents |
-| the delegation rules | `curated-agents/<name>/delegation.md`, pasted into a repository's `AGENTS.md` | **when** the main agent hands work over, what to send, what to do with the report | by the main agent, in that repository |
+| the delegation rules | `curated-agents/<name>/delegation.md`, rendered into user-level instructions by the module's `activation`, or pasted into a repository's `AGENTS.md` | **when** the main agent hands work over, what to send, what to do with the report | by the main agent, in that repository |
 
 The description alone does not get the agent used. With the same task
 ("add `div(a, b)`, `ValueError` on zero, with tests") and the agent installed,

@@ -19,18 +19,33 @@ let
   frontmatter = name: a: extra: "---\nname: ${name}\ndescription: ${builtins.toJSON a.description}\n"
     + lib.concatStrings (lib.mapAttrsToList (k: v: "${k}: ${v}\n") extra)
     + lib.optionalString (a.override or false) "override: true\n" + "---\n\n";
-in
-{
   agents = {
     ponytail = import ./ponytail { inherit pkgs; };
     designer = import ./designer { inherit pkgs; };
   };
+in
+{
+  inherit agents;
+
+  # The user-level instructions for the installed agents, given as
+  # { <name> = <activation>; }: each agent's delegation rules, whose first rule
+  # reads the activation from the line naming it here.
+  instructions = activations: "# Curated agents\n\nagent-camp installed these subagents: "
+    + lib.concatStringsSep ", " (lib.mapAttrsToList (n: v: "${n} `${v}`") activations)
+    + ". Each section's first rule says where it applies.\n\n"
+    + lib.concatMapStringsSep "\n" (n: agents.${n}.delegation) (lib.attrNames activations);
 
   # harness -> { default; file = name: home-relative path; render = name: agent: store file;
   #   copy = true: placed as a regular file, not a home.file symlink;
   #   replaces = { <built-in coding subagent> = its description; }: replaced by
   #   the curated agent under that name when `replaceBuiltins` is on;
-  #   allow = permission rules the harness needs for any curated agent }
+  #   allow = permission rules the harness needs for any curated agent;
+  #   instructions = home-relative file the installed agents' delegation rules
+  #   go to (none: the harness has no user-level instructions file);
+  #   instructionsShared = true: the user owns that file, so the rules go in a
+  #   marked block the module rewrites, not a file of their own;
+  #   hooks = the JSON file whose `hooks.SessionStart` takes the session hook
+  #   (none: no hook that can add context at session start) }
   adapters = {
     claude = {
       default = true;
@@ -42,6 +57,11 @@ in
       # its skills. The whole store: it is read-only, and the skill paths move
       # with every bump. Merged into ~/.claude/settings.json by the module.
       allow = [ "Read(//nix/store/**)" ];
+      # User-level rules load in every session like ~/.claude/CLAUDE.md, which
+      # stays the user's (code.claude.com/docs/en/memory#user-level-rules).
+      instructions = ".claude/rules/agent-camp-curated-agents.md";
+      # SessionStart stdout becomes context; merged like `allow`.
+      hooks = ".claude/settings.json";
     };
     codex = {
       default = true;
@@ -54,6 +74,12 @@ in
         inherit (a) description;
         developer_instructions = a.prompt;
       } // defaults "codex" { model = "model"; effort = "model_reasoning_effort"; } a);
+      # Codex reads one user-level file and includes nothing from it.
+      instructions = ".codex/AGENTS.md";
+      instructionsShared = true;
+      # Plain SessionStart stdout is added as developer context
+      # (learn.chatgpt.com/docs/hooks); Codex runs a hook once it is trusted.
+      hooks = ".codex/hooks.json";
     };
     kimi = {
       default = false;
@@ -61,6 +87,8 @@ in
       # Kimi keeps its built-in unless the file says `override: true`.
       replaces.coder = "The default sub-agent, a general-purpose software engineering assistant that can read and write files, execute commands, search code, and land concrete changes.";
       render = name: a: pkgs.writeText "${name}.md" (frontmatter name a { } + "\${base_prompt}\n\n" + a.prompt);
+      # No instructions or hooks: kimi-cli 1.52 reads AGENTS.md only from the
+      # project (root to working dir), and drops SessionStart hook output.
     };
   };
 }

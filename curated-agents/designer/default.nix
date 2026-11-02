@@ -11,7 +11,10 @@ in
   # Per-harness default model and effort, unset = the harness default, e.g.
   # claude = { model = "opus"; effort = "high"; }; codex = { model = "<codex model>"; effort = "high"; };
   defaults = { };
-  description = "Owns a product's visual design through DESIGN.md (typography, spacing, layout, motion): extracts a design language from references, writes DESIGN.md, builds it, or critiques a build against it. Delegate only when the repository's AGENTS.md has delegation rules for it.";
+  # The module's activation default: "global", "opt-in" or "off".
+  activation = "global";
+  delegation = builtins.readFile ./delegation.md;
+  description = "Owns a product's visual design through DESIGN.md (typography, spacing, layout, motion): extracts a design language from references, writes DESIGN.md, builds it, or critiques a build against it. Delegate design work by its delegation rules in your instructions, unless they are switched off.";
   prompt = builtins.replaceStrings
     [ "@EMIL@" "@IMPECCABLE@" "@TASTE@" "@GSAP@" "@OWN@" ]
     [
