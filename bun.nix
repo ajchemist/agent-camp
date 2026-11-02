@@ -6,10 +6,10 @@
 #   nix hash convert --hash-algo sha256 --to sri <hex from SHASUMS256.txt of the release>
 { pkgs }:
 let
-  version = "1.4.2";
+  version = "1.4.4";
   hashes = {
-    aarch64-darwin = { asset = "bun-darwin-aarch64"; hash = "sha256-kJh6OhbX21VtiGrD1VHnttPt8KHPQ6yu1iLoZ2vh0S8="; };
-    x86_64-linux = { asset = "bun-linux-x64-baseline"; hash = "sha256-xngEDxT+BEDrg503y9DOTAUaMtpygGrJfeamqra/co8="; };
+    aarch64-darwin = { asset = "bun-darwin-aarch64"; hash = "sha256-wkDX8My5DCY6hJ/NsJt+5iYw2SE0jtaq/ahrnVd7xRA="; };
+    x86_64-linux = { asset = "bun-linux-x64-baseline"; hash = "sha256-4ERutVmVdy65iUvrrppr42jZhai5Jx7hJEhvmUbu3XY="; };
   };
   h = hashes.${pkgs.stdenv.hostPlatform.system} or (throw "bun: no hash for ${pkgs.stdenv.hostPlatform.system} in bun.nix");
 in
