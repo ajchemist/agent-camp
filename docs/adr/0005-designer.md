@@ -41,6 +41,13 @@ It extends ADR 0003 in five places.
   assumptions, overriding Impeccable init's approval round; Info needed only
   when the goal is missing or contradicts the done criteria; the main agent
   skips the DESIGN.md approval before `build` when it came from the brief.
+- **The flow scales to the tier.** Amended 2026-11-03 (#53): simple work is
+  one `build` ending in a check-and-fix pass (Impeccable's detector,
+  accessibility, reduced motion; floor findings fixed, taste findings
+  advisory); `direction` only where there is no design to follow; `critique`
+  only for complex or motion work, one round unless it finds a floor defect.
+  Emil's skills only for motion detail. The main agent never stops to ask
+  after any mode on a complete brief or in a non-interactive run.
 
 Also: `replaceBuiltins` may be on for one agent at most; two would write the
 same built-in's file.

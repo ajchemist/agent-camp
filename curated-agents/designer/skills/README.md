@@ -8,3 +8,6 @@ Skills the upstreams do not cover, read by the designer curated agent as
   Kept here because browser support moves faster than any upstream.
 - `type-scale`: survey → ratio → semantic role tokens → `clamp()` checks.
 - `space-scale`: the same flow for spacing.
+- `design-md`: the DESIGN.md and PRODUCT.md formats, digested from
+  Impeccable's `document.md` and `init.md`, so `direction` reads two pages
+  instead of 40k characters of playbook.
