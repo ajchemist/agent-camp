@@ -22,4 +22,27 @@ Nobody can say whether a curated agent beats a harness as it ships. Simple work 
 - One overall verdict: rejected, a win on complex work would hide a loss on simple work.
 - LLM judge only: rejected, self-preference and position bias are real and its agreement with a human is unknown until measured.
 - Human judging only: workable, but slow; the judge adds volume once it has earned trust.
-- Public or crowd voting, a second human rater, more arms or leave-one-out ablation of upstreams: out of scope for now.
+- Public or crowd voting, a second human rater or leave-one-out ablation of upstreams: out of scope for now.
+
+## Amendment (2026-11-02): what makes an arm worth keeping, and candidates
+
+The benchmark exists so that we never choose a path that spends more tokens for worse output. A path that costs more is worth keeping when its quality has a floor and keeps rising with improvement iterations.
+
+- **Verdict rule.** An arm is promoted, or kept, only if three things hold:
+  - it is not dominated (more tokens for equal or lower quality);
+  - it clears the quality floor;
+  - its learning curve rises.
+
+  Higher token use is acceptable when all three hold.
+- **Quality floor.** Two checks, both on every trial:
+  - every deterministic gate passes on all three trials (pass^3);
+  - the worst of the three trials does not lose a pairwise verdict to the baseline arm's median trial.
+
+  An absolute rubric score may be added later.
+- **Learning curve.** Each bench task version has an anchor: frozen baseline arm outputs from the first run. After every improvement iteration, the win rate against the anchor is measured per tier and plotted against the iteration count.
+- **Stalled or failing paths.** An arm that is dominated, misses the floor, or whose curve has not risen after 3 improvement iterations gets a PR that routes the tier to the baseline arm. That PR waits for the maintainer's verdict. A candidate in that state is marked for retirement.
+- **Candidates.** Besides the incumbent (the curated agent agent-camp ships), the lab runs up to 2 candidates, other ways of building the same agent, which live only in the lab. The baseline arm and the incumbent always run.
+  - Candidates are compared with the incumbent at equal improvement-iteration counts, by overlaying learning curves. A new candidate first gets 3 improvement iterations.
+  - Human judging goes to the incumbent against the best candidate. The other comparisons rely on the earned LLM judge.
+  - A candidate that beats the incumbent, clears the floor and has a rising curve gets a replacement PR. Replacement follows ADR 0006's third row (research issue, `approved`).
+- **Intake.** The maintainer feeds the lab methodology notes through an issue form labelled `intake` in the lab. The lab triages each note: it improves a candidate, proposes a new candidate (research issue, `approved`), or is declined with a reason.
