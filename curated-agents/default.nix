@@ -6,10 +6,18 @@
 # their default system prompt with it (Kimi gets `${base_prompt}` back in
 # front), Codex adds it on top as developer instructions. pi has no built-in
 # subagents, so it has no adapter yet.
+#
+# `defaults.<harness> = { model; effort; }` in a definition is that harness's
+# default model and reasoning effort for the agent; unset keys are left out of
+# the rendered file, so the harness picks as it would without them.
 { pkgs }:
 let
   inherit (pkgs) lib;
-  frontmatter = name: a: "---\nname: ${name}\ndescription: ${builtins.toJSON a.description}\n"
+  # The set keys of a harness's defaults, renamed to that harness's own field names.
+  defaults = h: names: a: lib.mapAttrs' (k: v: lib.nameValuePair names.${k} v)
+    (lib.filterAttrs (_: v: v != null) (a.defaults.${h} or { }));
+  frontmatter = name: a: extra: "---\nname: ${name}\ndescription: ${builtins.toJSON a.description}\n"
+    + lib.concatStrings (lib.mapAttrsToList (k: v: "${k}: ${v}\n") extra)
     + lib.optionalString (a.override or false) "override: true\n" + "---\n\n";
 in
 {
@@ -27,7 +35,8 @@ in
     claude = {
       default = true;
       file = name: ".claude/agents/${name}.md";
-      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + a.prompt);
+      # Agent frontmatter takes `model` and `effort` (code.claude.com/docs/en/sub-agents).
+      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a (defaults "claude" { model = "model"; effort = "effort"; } a) + a.prompt);
       # Claude Code asks before reading outside the workspace, and a headless
       # run (`claude -p`) is refused outright, so the agent would work without
       # its skills. The whole store: it is read-only, and the skill paths move
@@ -40,18 +49,18 @@ in
       # Codex skips an agent file that is a symlink ("agent type is currently
       # not available", codex-cli 0.160.1), so this one is copied.
       copy = true;
-      render = name: a: (pkgs.formats.toml { }).generate "${name}.toml" {
+      render = name: a: (pkgs.formats.toml { }).generate "${name}.toml" ({
         inherit name;
         inherit (a) description;
         developer_instructions = a.prompt;
-      };
+      } // defaults "codex" { model = "model"; effort = "model_reasoning_effort"; } a);
     };
     kimi = {
       default = false;
       file = name: ".agents/agents/${name}.md";
       # Kimi keeps its built-in unless the file says `override: true`.
       replaces.coder = "The default sub-agent, a general-purpose software engineering assistant that can read and write files, execute commands, search code, and land concrete changes.";
-      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a + "\${base_prompt}\n\n" + a.prompt);
+      render = name: a: pkgs.writeText "${name}.md" (frontmatter name a { } + "\${base_prompt}\n\n" + a.prompt);
     };
   };
 }
