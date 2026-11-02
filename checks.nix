@@ -112,6 +112,29 @@ in
       touch $out
     '';
 
+  # Per-harness default model and effort: set ones land in the claude
+  # frontmatter and the codex TOML (kimi takes none); unset renders as before.
+  curated-defaults =
+    let
+      inherit (import ./curated-agents { inherit pkgs; }) adapters;
+      plain = { description = "d"; prompt = "p"; };
+      set = plain // { defaults = { claude = { model = "opus"; effort = "high"; }; codex = { model = "m"; effort = "low"; }; kimi = { model = "k"; }; }; };
+      unset = plain // { defaults = { claude = { model = null; }; }; };
+      r = h: a: adapters.${h}.render "t" a;
+      # The codex file as it was rendered before defaults existed.
+      codexBefore = (pkgs.formats.toml { }).generate "t.toml" { name = "t"; description = "d"; developer_instructions = "p"; };
+    in
+    pkgs.runCommand "agent-camp-curated-defaults" { } ''
+      printf -- '---\nname: t\ndescription: "d"\neffort: high\nmodel: opus\n---\n\np' | cmp - ${r "claude" set} || { echo "FAIL: claude defaults"; exit 1; }
+      grep -qx 'model = "m"' ${r "codex" set} && grep -qx 'model_reasoning_effort = "low"' ${r "codex" set} || { echo "FAIL: codex defaults"; cat ${r "codex" set}; exit 1; }
+      cmp ${r "kimi" set} ${r "kimi" plain} || { echo "FAIL: kimi got defaults"; exit 1; }
+      for a in ${r "claude" plain} ${r "claude" unset}; do
+        printf -- '---\nname: t\ndescription: "d"\n---\n\np' | cmp - $a || { echo "FAIL: claude without defaults changed"; exit 1; }
+      done
+      cmp ${codexBefore} ${r "codex" plain} && cmp ${codexBefore} ${r "codex" unset} || { echo "FAIL: codex without defaults changed"; exit 1; }
+      touch $out
+    '';
+
   # User-scope skills: stable workflows and their reusable dependencies exist
   # in the pinned upstream source; disabling a source
   # leaves no `skills add` for it.
