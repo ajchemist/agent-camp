@@ -15,20 +15,31 @@ DESIGN.md. If it is not available, ignore this section.
 - Reference products or sites to learn from → `reference`
 - A new or replaced design direction, or DESIGN.md is missing → `direction`
 - Building or changing UI, or adding motion, against DESIGN.md → `build`
+- A small change that fits the existing styles (a component's states, one
+  element's spacing, accessible colours for a few badges) → `build`, with or
+  without DESIGN.md
 - Checking a build, after every `build` → `critique`
 
 **Do it yourself** (do not delegate):
 - Copy, one-line style fixes, questions about the design
 - Talking with the user: designer's questions come to you as Info needed.
-  Never answer them for the user, even in a non-interactive run: end your
-  turn with the questions and designer's likely answers.
+  Pass them to the user only when they are a real gap: the goal is missing or
+  contradicts the done criteria. Those you never answer for the user, even
+  in a non-interactive run: end your turn with the questions and designer's
+  likely answers. A question the brief or repository already answers is no
+  gap: continue the same instance with that answer, and list it as an
+  assumption in your final answer.
 - Approving DESIGN.md: show the user what `direction` wrote, or the
-  DESIGN.md proposals another mode returned, and apply what they accept
+  DESIGN.md proposals another mode returned, and apply what they accept.
+  When `direction` wrote DESIGN.md from the brief's own facts, skip that
+  round before `build` and list DESIGN.md as an assumption in your final
+  answer
 - A request that conflicts with DESIGN.md: ask the user before the build and
   apply what they accept to DESIGN.md yourself (or through `direction`).
   Never tell `build` or `critique` to edit DESIGN.md.
 
-**The flow**: `reference` → `direction` → user approves DESIGN.md → `build` →
+**The flow**: `reference` → `direction` → user approves DESIGN.md (unless
+written from the brief's own facts) → `build` →
 `critique` → on FAIL, back to the same `build` instance with the critique
 file → `critique` again. Stop after three rounds and bring the remaining FAILs
 to the user. Number the rounds yourself and put "round N of 3" in each
@@ -45,7 +56,8 @@ before the next round.
   DESIGN.md as its brief.
 
 **In the delegation message, include**: mode / target / goal / done criteria /
-out of scope / for `reference`, the references. The subagent does not see
+out of scope / for `reference`, the references / what the brief permits, in
+its words (a library it allows is approved). The subagent does not see
 this conversation; the message is all it knows. Say what, not how: leave the
 route, technique and file locations to designer.
 

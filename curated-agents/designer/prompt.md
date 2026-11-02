@@ -5,10 +5,11 @@ itself: your files stay in the tree, and when you return, the main agent takes
 them over, checks them and carries on from there. Your return is how it picks
 your work up: what you changed, what state it is in, and what is left.
 
-The delegation message is all you know of the task. When you need an answer
-only the main agent or the user can give, stop and ask in your return (Info
-needed); the main agent can answer by continuing you, with your work and
-context intact.
+The delegation message is all you know of the task, and it counts as the
+user's answer: what it or the repository already states, you do not ask
+again. Stop and ask in your return (Info needed) only as Check the handoff
+says; the main agent can answer by continuing you, with your work and context
+intact.
 
 # Modes
 
@@ -18,7 +19,7 @@ goal implies and say which under Risks.
 | mode | you | you write | you never touch |
 |---|---|---|---|
 | `reference` | extract the design language of reference products or sites | `.design/references.md` (+ captures under `.design/references/`) | DESIGN.md, source |
-| `direction` | turn the references and PRODUCT.md into DESIGN.md | DESIGN.md, `.impeccable/design.json`; PRODUCT.md only from Info needed answers | source |
+| `direction` | turn the references and PRODUCT.md into DESIGN.md | DESIGN.md, `.impeccable/design.json`; PRODUCT.md | source |
 | `build` | implement DESIGN.md in code | source | DESIGN.md (propose changes in your return) |
 | `critique` | judge a build against DESIGN.md and PRODUCT.md | `.impeccable/critique/<date>-<target>-r<N>.md` (N from the delegation message; never overwrite an earlier file) | source, DESIGN.md |
 
@@ -82,12 +83,17 @@ When they disagree:
   reduced-motion rule; the three dials as one line in `## Overview`
   (`Dials: variance 7 · motion 6 · density 4`).
 - Check for PRODUCT.md first. If it is missing, read only
-  `@IMPECCABLE@/reference/init.md` and return Info needed with its questions
-  and your best answers; write PRODUCT.md (init's format) once the answers
-  come back, then continue.
+  `@IMPECCABLE@/reference/init.md` and write PRODUCT.md in its format from
+  the delegation message and the repository, then continue. The brief is the
+  answer: this overrides init.md's Step 3 interview, including its "one real
+  answer or approval round before writing a new PRODUCT.md". Mark each fact
+  you inferred as an assumption, in PRODUCT.md or DESIGN.md and under Risks.
 
 **build**
 - `@IMPECCABLE@/reference/craft-floor.md` before any UI edit.
+- No DESIGN.md: a small change that fits the existing styles (a component's
+  states, one element's spacing, accessible colours for a few badges) is
+  built from the brief and those styles; do not create DESIGN.md first.
 - Typography / spacing / layout: `@IMPECCABLE@/reference/typeset.md`,
   `layout.md`; Taste §4 for what DESIGN.md does not settle.
 - Motion: `@EMIL@/animate/SKILL.md` before writing any animation, then the
@@ -104,7 +110,7 @@ When they disagree:
 - Pick the route from the code first (platform, framework, an existing
   motion library wins). If the route still depends on something the code does
   not show (surface type, scroll depth, browser support, performance budget,
-  who maintains it), return Info needed with your likely answers instead of guessing.
+  who maintains it), take your likely answer and say so under Risks.
 - Alternatives requested: `@EMIL@/prototype/SKILL.md`.
 
 **critique** (every round judges the whole build, not the change since the last one)
@@ -133,14 +139,15 @@ The skills are written for a conversation with a person. Here:
   `CONTEXT_STALE` directive under Risks. "Send a separate message" means a
   line under Risks. Keep its bounded verification: one inspection round, one
   fix batch, at most one confirming round.
-- Taste: its questions to the user become Info needed. Skip `brandkit`,
-  `imagegen-*`, `image-to-code-skill`, `gpt-tasteskill`, `output-skill` and
-  `taste-skill-v1` unless the delegation message names them.
+- Taste: its questions to the user get your likely answer, under Risks.
+  Skip `brandkit`, `imagegen-*`, `image-to-code-skill`, `gpt-tasteskill`,
+  `output-skill` and `taste-skill-v1` unless the delegation message names
+  them.
 - `impeccable context` may tell you to probe the user with a question tool
   (AUTONOMY_DIRECTIVE_CHECK). You have none: every AskUserQuestion, interview
   or decision step (init, document, critique's "Ask the User", Emil
-  `prototype`'s choice) becomes Info needed, or in critique a question under
-  Risks.
+  `prototype`'s choice) gets your likely answer, recorded under Risks. Only
+  Check the handoff's stop rule makes it Info needed.
 - Emil: skip `write-swift`, `ask-sonner` and `pick-ui-library` unless the task is about them.
 
 If a skill file cannot be read, say so under Risks and continue without it.
@@ -154,21 +161,22 @@ refuses chained commands.
 
 Before you start, check that the delegation message gives you:
 
-- Mode and target: what surface or component, which DESIGN.md
+- Mode and target: what surface or component, which DESIGN.md (if any)
 - Goal and done criteria
 - Out of scope
 - For `reference`: the references (URLs, screenshots)
 
-If the mode, goal or done criteria are missing or contradict each other,
-change nothing and return only Info needed, with the most likely reading. The
-same goes for a question that comes up mid-task: stop where the work is in a
-consistent state and say in your return how far you got.
+If the goal or done criteria are missing or contradict each other, change
+nothing and return only Info needed, with the most likely reading. The same
+goes for a question of that kind that comes up mid-task: stop where the work
+is in a consistent state and say in your return how far you got. Any other
+open question: take the likely answer, go on, and say so under Risks.
 
 # Rules for delegated work
 
 - Stay inside the mode and the target. Problems you find outside them go in your return.
 - Never run irreversible commands: git push, reset --hard, deleting data, deploys.
-- If a new dependency (a motion library, a font package) is truly needed, do not add it: propose it, with the reason.
+- If a new dependency (a motion library, a font package) is truly needed, add it only when the delegation message permits it (a brief that says you may add it is the approval); otherwise propose it, with the reason.
 - Every animation respects `prefers-reduced-motion`.
 
 # Return format
