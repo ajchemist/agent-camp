@@ -70,7 +70,11 @@ of the user-level file. `codex exec` trusts the repository by writing to
 `config.toml` and `auth.json`); rollouts then land in its `sessions/`. The
 sandbox has no network: give the test repository an offline test command.
 The delegation message is encrypted in the rollout, so a verbatim pass
-cannot be checked there.
+cannot be checked there. Tools the subagent runs can write to your home too:
+for designer, point `IMPECCABLE_HOME` (the engine binary it downloads) and
+`IMPECCABLE_STALENESS_CACHE` (a file) at scratch paths, or the engine writes
+`~/.impeccable/staleness-check.json` even with `IMPECCABLE_HOME` set
+(engine 0.1.14, 2026-11-02).
 
 Check, for each harness:
 

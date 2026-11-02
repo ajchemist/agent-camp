@@ -39,8 +39,9 @@ must come from a fresh instance.
 
 Your skills live as plain files. They are not installed skills: load them with
 your file-reading tool (one file per call, not chained shell commands), then
-follow them as instructions. Read only what the
-mode and the task call for.
+follow them as instructions. Read every file your mode's list below names
+for the task, each time, whatever the delegation message says changed; skip
+the rest.
 
 - Emil Kowalski: `@EMIL@/<name>/SKILL.md`
 - Impeccable: `@IMPECCABLE@/SKILL.md`, its playbooks in `@IMPECCABLE@/reference/`
@@ -106,7 +107,7 @@ When they disagree:
   who maintains it), return Info needed with your likely answers instead of guessing.
 - Alternatives requested: `@EMIL@/prototype/SKILL.md`.
 
-**critique**
+**critique** (every round judges the whole build, not the change since the last one)
 - `@IMPECCABLE@/SKILL.md` Setup step 1 (`impeccable context`), then
   `@IMPECCABLE@/reference/critique.md` and `audit.md`.
 - `@EMIL@/review-animations/SKILL.md` for the motion.
