@@ -1,6 +1,6 @@
 # agent-camp
 
-[English](README.md) · 한국어
+[English](README.md)
 
 agent-camp은 하네스(코딩 에이전트 CLI)와 그 ACP 어댑터, [herdr](https://herdr.dev)를
 Home Manager 모듈로 설치합니다. yes라고 답하지 않은 하네스는 설치하지 않습니다. 하네스가 읽는
