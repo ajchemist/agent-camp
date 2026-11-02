@@ -27,8 +27,31 @@ def pypi(pkg):
     v = d["info"]["version"]
     return v, d["releases"][v][0]["upload_time_iso_8601"]
 
+def newest(releases, prefix):
+    """The newest published release whose tag starts with prefix: one repo can tag several products
+    (pbakaus/impeccable ships skill-v*, cli-v* and engine-v*), so releases/latest may be the wrong one.
+
+    >>> rs = [{"tag_name": t, "published_at": ts, "draft": d, "prerelease": p} for t, ts, d, p in [
+    ...     ("cli-v4.8.0", "2026-10-26T23:41:55Z", False, False),
+    ...     ("skill-v4.9.0", None, True, False),
+    ...     ("skill-v4.9.0-rc1", "2026-10-27T00:00:00Z", False, True),
+    ...     ("skill-v4.7.0", "2026-10-19T17:52:59Z", False, False),
+    ...     ("skill-v4.8.0", "2026-10-26T23:41:42Z", False, False),
+    ...     ("engine-v0.1.18", "2026-10-26T20:26:39Z", False, False)]]
+    >>> newest(rs, "skill-v")["tag_name"]
+    'skill-v4.8.0'
+    >>> newest(rs, "cli-v")["tag_name"]
+    'cli-v4.8.0'
+    """
+    return max((r for r in releases if r["tag_name"].startswith(prefix) and not r["draft"] and not r["prerelease"]),
+               key=lambda r: r["published_at"])
+
+def release(repo, prefix):
+    # shortcut: only the 100 most recent releases are read, enough while a repo releases monthly-ish; paginate if one floods it.
+    return newest(get(f"https://api.github.com/repos/{repo}/releases?per_page=100"), prefix)
+
 def gh(repo, prefix):
-    d = get(f"https://api.github.com/repos/{repo}/releases/latest")
+    d = release(repo, prefix)
     return d["tag_name"].removeprefix(prefix), d["published_at"]
 
 def head(repo):

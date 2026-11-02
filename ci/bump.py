@@ -8,6 +8,7 @@ and the hash from `nix flake prefetch`, so those need nix on PATH. An upstream w
 (tag prefix None) is tracked by its default branch's head, versioned 0-unstable-<commit date>.
 """
 import base64, hashlib, json, os, re, subprocess, sys, urllib.request
+from updates import release  # ci/ is on sys.path as the script's own directory
 
 TOOLS = {  # file, repo, tag prefix, asset URL suffix (bun ships zips)
     "bun": ("bun.nix", "oven-sh/bun", "bun-v", ".zip"),
@@ -39,7 +40,7 @@ def main():
     if prefix is None:
         rev, latest = head(repo)
     else:
-        tag = json.loads(fetch(f"https://api.github.com/repos/{repo}/releases/latest"))["tag_name"]
+        tag = release(repo, prefix)["tag_name"]
         latest = tag.removeprefix(prefix)
     if latest == current:
         return

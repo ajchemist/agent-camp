@@ -8,6 +8,7 @@ on:
       - "*.sh"
       - flake.lock
       - ci/**
+      - curated-agents/**
       - .github/workflows/ci.yml
   pull_request:
     paths: *code
@@ -38,7 +39,8 @@ jobs:
       - name: Helpers parse
         run: |
           bash -n ci/e2e-deploy.sh
-          python3 -m py_compile ci/acp-initialize.py
+          python3 -m py_compile ci/acp-initialize.py ci/bump.py
+          python3 -m doctest ci/updates.py
 
   # The real flow on a runner, only after both systems passed: claude,
   # codex, pi and goose with their ACP adapters, and herdr; each must run,
