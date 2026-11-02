@@ -52,3 +52,13 @@ _Avoid_: level, difficulty
 _Avoid_: test set, eval set
 
 **Decoy run**: a baseline arm compared with itself, to check that the benchmark finds no difference when there is none.
+
+**Incumbent**: the curated agent agent-camp ships for a domain. Exactly one per domain.
+
+**Candidate**: another way of building that curated agent (other skills, another workflow, another structure), living only in the lab and benchmarked against the incumbent and the baseline arm. A candidate that wins replaces the incumbent.
+_Avoid_: variant, design (that word is the domain's)
+
+**Anchor**: a frozen set of baseline arm outputs for one bench task version. Every improvement iteration is judged against it, so quality can be tracked across iterations.
+_Avoid_: reference (that is the designer's mode)
+
+**Dominated**: an arm that spends more tokens than another for equal or lower quality. A dominated arm is never promoted.
