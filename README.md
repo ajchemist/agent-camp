@@ -1,6 +1,6 @@
 # agent-camp
 
-English · [한국어](README.ko.md)
+[한국어](README.ko.md)
 
 agent-camp installs harnesses (coding-agent CLIs), their ACP adapters, and
 [herdr](https://herdr.dev) through a Home Manager module. It installs no

@@ -33,3 +33,22 @@ _Avoid_: update PR, release PR
 _Avoid_: accepted, greenlit
 
 **Gate**: the automation that closes a PR which links no approved issue, and reopens it once the issue is approved.
+
+**Arm**: one way of running a bench task, named by its harness, model, effort and whether the curated agent is present. Every run of an arm is journaled with its token use.
+_Avoid_: route, path, variant
+
+**Baseline arm**: an arm where the harness does the task as it ships, with no curated agent and no curated skills.
+_Avoid_: vanilla, stock
+
+**Curated arm**: an arm with the same harness, model, effort and brief as its baseline arm, plus the curated agent and its skills.
+
+**Bench task**: a versioned brief plus the fixture repository it starts from, tagged with its tier. Results are compared only within the same bench task version.
+_Avoid_: test case, scenario
+
+**Tier**: a bench task's complexity: simple, standard or complex. Verdicts are given per tier, because a curated agent can win on complex work and lose on simple work. A task's domain (landing, app UI, data screen, motion) is recorded but is not a tier.
+_Avoid_: level, difficulty
+
+**Holdout task**: a bench task the self-improvement loop never sees while it tunes the curated agent. Only promotion verdicts use it.
+_Avoid_: test set, eval set
+
+**Decoy run**: a baseline arm compared with itself, to check that the benchmark finds no difference when there is none.
