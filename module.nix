@@ -255,8 +255,13 @@ in
       home.sessionVariables.FNM_DIR = "$HOME/.local/share/fnm";
       # designer runs Impeccable's engine from the pinned store path; without
       # this it checks for updates and writes ~/.impeccable/update-check.json
-      # whatever IMPECCABLE_HOME says.
+      # whatever IMPECCABLE_HOME says. Its staleness check writes
+      # ~/.impeccable/staleness-check.json unless pointed elsewhere, and its
+      # telemetry is off by the maintainer's choice.
       home.sessionVariables.IMPECCABLE_NO_UPDATE_CHECK = lib.mkIf cfg.curated-agents.designer.enable "1";
+      home.sessionVariables.IMPECCABLE_STALENESS_CACHE = lib.mkIf cfg.curated-agents.designer.enable "$HOME/.cache/impeccable/staleness-check.json";
+      home.sessionVariables.IMPECCABLE_NO_TELEMETRY = lib.mkIf cfg.curated-agents.designer.enable "1";
+      home.sessionVariables.DO_NOT_TRACK = lib.mkIf cfg.curated-agents.designer.enable "1";
       home.sessionPath = [ "$HOME/.bun/bin" "$HOME/.local/share/fnm/aliases/default/bin" ];
 
       # node for the agent CLIs, from fnm, only while fnm has no default yet:
