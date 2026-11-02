@@ -1,5 +1,12 @@
 ## Delegating to ponytail
 
+**On or off**: the line `curated-agents: ponytail off` in the repository's
+AGENTS.md switches this section off, and `curated-agents: ponytail on`
+switches it on. Without either line, it is on where this section is in the
+repository's AGENTS.md or agent-camp installed ponytail `global`, and off
+elsewhere. A session-start notice that says not to delegate to ponytail wins
+over both.
+
 If a subagent named `ponytail` is available, decide before starting any task
 that changes code whether to hand it to that subagent. If it is not available,
 ignore this section.

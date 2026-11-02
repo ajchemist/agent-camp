@@ -68,16 +68,89 @@ rendered per harness ([ADR 0003](docs/adr/0003-curated-agents.md)):
 ```nix
 agent-camp.curated-agents.ponytail.harnesses.kimi = true;  # also ~/.agents/agents/ponytail.md
 agent-camp.curated-agents.ponytail.replaceBuiltins = true; # also replace built-in coding subagents (kimi `coder`); one agent at most
-agent-camp.curated-agents.ponytail.enable = false;         # or none at all
+agent-camp.curated-agents.ponytail.activation = "off";     # or none at all (see Activation)
 ```
 
 Files: claude `~/.claude/agents/<name>.md`, codex `~/.codex/agents/<name>.toml`,
 kimi `~/.agents/agents/<name>.md`. pi has no built-in subagents, so it gets none yet.
 
-An installed agent is not delegated to on its own: paste its rules
-(`curated-agents/<name>/delegation.md`) into a repository's `AGENTS.md`. How
-ponytail was built and checked: [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md).
+How ponytail was built and checked: [docs/curated-agent-workflow.md](docs/curated-agent-workflow.md).
 What each harness loads and how to leave it out: [docs/harness-context.md](docs/harness-context.md).
+
+### Activation
+
+An installed agent is delegated to only where its delegation rules
+(`curated-agents/<name>/delegation.md`) are in the main agent's instructions
+and switched on. Three layers decide, the same way for every curated agent.
+A later layer wins: **session over repository over module**.
+
+1. **Module**, at deploy time: `agent-camp.curated-agents.<name>.activation`.
+
+   | value | what is installed | the rules are on |
+   |---|---|---|
+   | `global` (designer's default) | the agent, and its rules in each harness's user-level instructions | in every repository, unless its `AGENTS.md` switches them off |
+   | `opt-in` (ponytail's default) | the same | only where a repository's `AGENTS.md` switches them on, or carries the rules itself (pasted, as before) |
+   | `off` | nothing | nowhere |
+
+   `enable = false`, the older option, is the same as `"off"`.
+
+   The rules go where each harness reads user-level instructions, without
+   taking over a file you write:
+
+   - claude: `~/.claude/rules/agent-camp-curated-agents.md`, a file of the
+     module's own. Claude Code loads user rules in every session beside
+     `~/.claude/CLAUDE.md`, which stays yours.
+   - codex: a marked block (`<!-- agent-camp curated agents: begin … end -->`)
+     at the end of `~/.codex/AGENTS.md`, rewritten on every switch and removed
+     when no agent is installed. Codex reads only that one file and includes
+     nothing from it. The rest of the file stays as you wrote it; edits inside
+     the block are lost. If the file is a link (for example to a shared
+     `~/.agents/AGENTS.md`), the switch leaves it alone and warns: add the
+     rules where the link points yourself. A `~/.codex/AGENTS.override.md`
+     replaces `AGENTS.md`, block and all.
+   - kimi: none. kimi-cli reads `AGENTS.md` only inside the project, so an
+     agent installed for kimi is used only in a repository whose `AGENTS.md`
+     carries its rules.
+
+2. **Repository**: one line in its `AGENTS.md`, the same shape for every agent:
+
+   ```
+   curated-agents: designer off
+   curated-agents: ponytail on
+   ```
+
+   The rules' first paragraph tells the main agent to obey it. The line is a
+   rule the model follows, not an enforcement. In Claude Code the enforced
+   form is a deny rule in the repository's `.claude/settings.json`, which
+   Claude Code enforces whatever the model reads:
+
+   ```json
+   { "permissions": { "deny": ["Agent(designer)"] } }
+   ```
+
+   Codex and kimi have no per-agent deny.
+
+3. **Session**: `AGENT_CAMP_DISABLE_AGENTS="designer,ponytail" claude` (comma or
+   space separated). A session-start hook the module installs
+   (`~/.local/share/agent-camp/session-start`) prints "Do not delegate to the
+   designer subagent in this session" for each name, and the harness adds that
+   to the context. It disables only; it cannot switch an agent on.
+
+   - claude: in `~/.claude/settings.json` `hooks.SessionStart`, merged like the
+     read rule below. It runs on start, resume, `/clear` and compaction.
+   - codex: in `~/.codex/hooks.json` `hooks.SessionStart`, merged the same way.
+     Codex runs a hook only once you trust it: open `/hooks` in the TUI once
+     after the first switch. The hook's command is a fixed path, so the trust
+     lasts across switches, including ones that change what the script prints.
+   - kimi: none. kimi-cli runs SessionStart hooks but drops their output.
+
+   Both hooks are installed while any curated agent goes to that harness.
+
+| | module (user-level rules) | repository line | enforced repository deny | session variable |
+|---|---|---|---|---|
+| claude | yes | yes | `Agent(<name>)` | yes |
+| codex | yes, unless `~/.codex/AGENTS.md` is a link | yes | no | yes, once the hook is trusted |
+| kimi | no | only where `AGENTS.md` carries the rules | no | no |
 
 ### Claude Code read rule
 
@@ -92,6 +165,9 @@ too, so the module does not own it:
   ones go in after yours. Every other key and rule stays as it was.
 - The file is written only when the rules change. Disabling every curated
   agent for Claude Code removes them.
+- The session hook goes into `hooks.SessionStart` the same way (state in
+  `claude-session-start`), and Codex's into `~/.codex/hooks.json`
+  (`codex-session-start`).
 - A file that is a link or not valid JSON is left alone, with a warning.
 
 Worth knowing:
@@ -202,6 +278,8 @@ goose's download-script binary, and a hand-installed `~/.local/bin/herdr`.
   - the answer-file logic (`choice.sh`);
   - that importing the module alone installs no harness and no herdr, and
     that an unknown harness is refused;
+  - what each curated agent's activation puts in each harness's user-level
+    instructions and hook files;
   - the ask and plan scripts.
 - **deploy**: runs only after both systems pass check. claude, codex, pi and
   goose, each with its adapter, plus herdr, are deployed onto the runner with

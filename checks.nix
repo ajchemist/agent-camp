@@ -15,7 +15,7 @@ let
 
   # Each agent-camp activation step as the switch runs it, with HM's `run`
   # (dry-run aware wrapper) stubbed, so shellcheck sees the generated shell.
-  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "curatedAgentCopies" "curatedClaudePermissions" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
+  steps = [ "fnmNode" "runtimeLeftovers" "agentClis" "userSkills" "curatedAgentCopies" "curatedInstructions" "curatedSettings" "herdrLocalCopy" "herdrPlugins" "herdrIntegrations" ];
   activationScript = c: pkgs.writeText "agent-camp-activation.sh" (''
     #!/usr/bin/env bash
     set -eu
@@ -103,12 +103,90 @@ in
       export HOME=$PWD
       run() { "$@"; }
       mkdir -p .claude && echo '{"permissions":{"allow":["mine"]},"x":1}' > .claude/settings.json
-      ${bare.home.activation.curatedClaudePermissions.data}
+      ${bare.home.activation.curatedSettings.data}
       ${pkgs.jq}/bin/jq -e '.x == 1 and .permissions.allow[0] == "mine" and (.permissions.allow | length) == 2' .claude/settings.json >/dev/null || { echo "FAIL: rule not added beside the user's"; cat .claude/settings.json; exit 1; }
       d=$(${pkgs.jq}/bin/jq -r '.permissions.allow[1] | capture("^Read\\(/(?<p>.*)/\\*\\*\\)$").p' .claude/settings.json)
       [ -d "$d" ] || { echo "FAIL: rule names missing $d"; exit 1; }
-      ${off.home.activation.curatedClaudePermissions.data}
+      ${off.home.activation.curatedSettings.data}
       ${pkgs.jq}/bin/jq -e '.permissions.allow == ["mine"]' .claude/settings.json >/dev/null || { echo "FAIL: disable left rules behind"; cat .claude/settings.json; exit 1; }
+      touch $out
+    '';
+
+  # Activation (#25). For each value, what each harness's user-level
+  # instructions carry: claude a rules file of the module's own, codex a marked
+  # block in the user's ~/.codex/AGENTS.md (the user's text kept, a link left
+  # alone), kimi nothing (no user-level file). The defaults; the repository
+  # line opening every delegation rules file; the session hook in claude's
+  # and codex's hook files and nowhere else, gone with the last agent.
+  activation =
+    let
+      curated = import ./curated-agents { inherit pkgs; };
+      names = lib.attrNames curated.agents;
+      jq = "${pkgs.jq}/bin/jq";
+      # Only agent n, set to value v, for claude, codex and kimi.
+      only = n: v: homeWith [{ agent-camp.curated-agents = lib.genAttrs names (m:
+        if m == n then { activation = v; harnesses.kimi = true; } else { activation = "off"; }); }];
+      claudeRules = c: c.home.file.".claude/rules/agent-camp-curated-agents.md".text or "";
+      section = n: "## Delegating to ${n}\n";
+      cases = lib.concatMap (n: map (v: { inherit n v; c = only n v; }) [ "global" "opt-in" "off" ]) names;
+      legacyOff = homeWith [{ agent-camp.curated-agents = lib.genAttrs names (_: { enable = false; }); }];
+      noHook = c: !(c.home.file ? ".local/share/agent-camp/session-start");
+    in
+    assert lib.assertMsg (bare.agent-camp.curated-agents.designer.activation == "global") "designer default is not global";
+    assert lib.assertMsg (bare.agent-camp.curated-agents.ponytail.activation == "opt-in") "ponytail default is not opt-in";
+    assert lib.all ({ n, v, c }: lib.assertMsg (if v == "off" then claudeRules c == ""
+      else lib.hasInfix (section n) (claudeRules c) && lib.hasInfix "${n} `${v}`" (claudeRules c))
+      "claude rules for ${n} ${v}: ${claudeRules c}") cases;
+    assert lib.all ({ n, v, c }: lib.assertMsg (lib.all (f: !lib.hasPrefix ".agents/" f || lib.hasPrefix ".agents/agents/" f) (lib.attrNames c.home.file))
+      "kimi got user-level instructions for ${n} ${v}") cases;
+    assert lib.all (a: lib.assertMsg (!(a ? instructions) && !(a ? hooks)) "kimi adapter grew instructions or hooks: update this check") [ curated.adapters.kimi ];
+    assert lib.all (n: lib.assertMsg (lib.hasPrefix "## Delegating to ${n}\n\n**On or off**: the line `curated-agents: ${n} off`" curated.agents.${n}.delegation
+      && lib.hasInfix "`curated-agents: ${n} on`" curated.agents.${n}.delegation) "${n}/delegation.md does not open with the repository line") names;
+    assert lib.assertMsg (claudeRules legacyOff == "" && noHook legacyOff) "enable = false still installs rules or the hook";
+    assert lib.assertMsg (!noHook bare && lib.all ({ v, c, ... }: (v == "off") == noHook c) cases) "session hook script placed wrongly";
+    pkgs.runCommand "agent-camp-activation" { } ''
+      export HOME=$PWD
+      run() { "$@"; }
+      fail() { echo "FAIL: $*"; exit 1; }
+      ${lib.concatMapStrings ({ n, v, c }: ''
+        # ${n} ${v}: codex's block, beside the user's own text.
+        rm -rf .codex .claude .local; mkdir -p .codex; echo mine > .codex/AGENTS.md
+        ${c.home.activation.curatedInstructions.data}
+        ${c.home.activation.curatedInstructions.data}
+        head -1 .codex/AGENTS.md | grep -qx mine || fail "codex: user text lost (${n} ${v})"
+        if [ ${v} = off ]; then
+          [ "$(cat .codex/AGENTS.md)" = mine ] || fail "codex: ${n} off still writes"
+        else
+          [ "$(grep -c '^## Delegating to ${n}$' .codex/AGENTS.md)" = 1 ] || fail "codex: ${n} ${v} block missing or doubled"
+          grep -qF '${n} `${v}`' .codex/AGENTS.md || fail "codex: ${n} ${v} activation not named"
+          ${legacyOff.home.activation.curatedInstructions.data}
+          [ "$(cat .codex/AGENTS.md)" = mine ] || fail "codex: block not removed after ${n} ${v}"
+        fi
+        # The session hook: in claude's settings and codex's hooks, not kimi's.
+        ${c.home.activation.curatedSettings.data}
+        for f in .claude/settings.json .codex/hooks.json; do
+          if [ ${v} = off ]; then [ ! -e $f ] || fail "$f written for ${n} off"
+          else ${jq} -e '[.hooks.SessionStart[].hooks[].command | select(endswith("/.local/share/agent-camp/session-start"))] | length == 1' $f >/dev/null || fail "no session hook in $f (${n} ${v})"
+          fi
+        done
+        ! grep -rq session-start .kimi .agents 2>/dev/null || fail "kimi got the session hook"
+      '') cases}
+
+      # A link is left alone; the hook leaves the user's own hooks when it goes.
+      rm -rf .codex .claude .local; mkdir -p .codex .claude; echo theirs > target; ln -s ../target .codex/AGENTS.md
+      echo '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"mine"}]}]}}' > .claude/settings.json
+      ${bare.home.activation.curatedInstructions.data}
+      [ "$(cat target)" = theirs ] && [ -L .codex/AGENTS.md ] || fail "linked AGENTS.md written through"
+      ${bare.home.activation.curatedSettings.data}
+      ${jq} -e '.hooks.SessionStart | length == 2 and .[0].hooks[0].command == "mine"' .claude/settings.json >/dev/null || fail "hook not added after the user's"
+      ${legacyOff.home.activation.curatedSettings.data}
+      ${jq} -e '.hooks.SessionStart == [{"hooks":[{"type":"command","command":"mine"}]}]' .claude/settings.json >/dev/null || fail "hook left behind or user's hook lost"
+
+      # The hook prints a notice per named agent, nothing without the variable.
+      h=${bare.home.file.".local/share/agent-camp/session-start".source}
+      [ -z "$($h < /dev/null)" ] || fail "notice without AGENT_CAMP_DISABLE_AGENTS"
+      msg=$(AGENT_CAMP_DISABLE_AGENTS="designer, ponytail" $h < /dev/null)
+      [ "$(printf '%s\n' "$msg" | grep -c 'Do not delegate to the')" = 2 ] && printf '%s' "$msg" | grep -q 'the designer subagent' || fail "notice: $msg"
       touch $out
     '';
 

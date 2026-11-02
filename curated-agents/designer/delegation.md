@@ -1,5 +1,12 @@
 ## Delegating to designer
 
+**On or off**: the line `curated-agents: designer off` in the repository's
+AGENTS.md switches this section off, and `curated-agents: designer on`
+switches it on. Without either line, it is on where this section is in the
+repository's AGENTS.md or agent-camp installed designer `global`, and off
+elsewhere. A session-start notice that says not to delegate to designer wins
+over both.
+
 If a subagent named `designer` is available, hand it design work on a
 product's interface: typography, spacing, layout and motion, carried through
 DESIGN.md. If it is not available, ignore this section.

@@ -9,17 +9,27 @@ let
   cfg = config.agent-camp;
   harnesses = import ./harnesses.nix;
   curated = import ./curated-agents { inherit pkgs; };
+  # `enable = false` is the older spelling of activation "off".
+  on = n: cfg.curated-agents.${n}.enable && cfg.curated-agents.${n}.activation != "off";
+  # The agents installed for harness h: { <name> = <activation>; }.
+  installedFor = h: lib.mapAttrs (n: _: cfg.curated-agents.${n}.activation)
+    (lib.filterAttrs (n: _: on n && cfg.curated-agents.${n}.harnesses.${h}) curated.agents);
+  # Their delegation rules, for the harness's user-level instructions ("" for none).
+  instructionsFor = h: lib.optionalString (installedFor h != { }) (curated.instructions (installedFor h));
+  # The session hook: one fixed path, so a harness that trusts a hook by its
+  # definition (Codex) keeps trusting it across switches.
+  sessionHook = ".local/share/agent-camp/session-start";
+  hookAdapters = lib.filterAttrs (h: ad: ad ? hooks && installedFor h != { }) curated.adapters;
   # Every curated agent file to place: { path (home-relative), src, copy }, plus
   # one per built-in subagent it replaces (keeping the built-in's description).
   curatedFiles = lib.concatLists (lib.mapAttrsToList (name: a:
-    lib.optionals cfg.curated-agents.${name}.enable (lib.concatLists (lib.mapAttrsToList (h: ad:
+    lib.optionals (on name) (lib.concatLists (lib.mapAttrsToList (h: ad:
       lib.optionals cfg.curated-agents.${name}.harnesses.${h} (map ({ n, agent }: { path = ad.file n; src = ad.render n agent; copy = ad.copy or false; })
         ([{ n = name; agent = a; }] ++ lib.optionals cfg.curated-agents.${name}.replaceBuiltins
           (lib.mapAttrsToList (b: description: { n = b; agent = a // { inherit description; override = true; }; }) (ad.replaces or { }))))
     ) curated.adapters))) curated.agents);
   # Claude Code permission rules, while any curated agent goes to claude.
-  claudeAllow = lib.optionals (lib.any (n: cfg.curated-agents.${n}.enable && cfg.curated-agents.${n}.harnesses.claude)
-    (lib.attrNames curated.agents)) curated.adapters.claude.allow;
+  claudeAllow = lib.optionals (installedFor "claude" != { }) curated.adapters.claude.allow;
   skillSources = import ./skill-sources { inherit pkgs; };
   wantedSkills = lib.filterAttrs (_: o: o.enable) cfg.skills;
   bun = import ./bun.nix { inherit pkgs; };
@@ -87,11 +97,23 @@ in
         description = "herdr plugins, pinned by commit.";
       };
     };
-    curated-agents = lib.mapAttrs (name: _: {
+    curated-agents = lib.mapAttrs (name: a: {
+      activation = lib.mkOption {
+        type = lib.types.enum [ "global" "opt-in" "off" ];
+        default = a.activation;
+        description = ''
+          How far the ${name} curated agent reaches. "global": installed, and its
+          delegation rules (curated-agents/${name}/delegation.md) go to each
+          harness's user-level instructions, on in every repository whose
+          AGENTS.md lacks `curated-agents: ${name} off`. "opt-in": the same, but
+          on only where AGENTS.md has `curated-agents: ${name} on` or the rules
+          themselves. "off": nothing installed.
+        '';
+      };
       enable = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Install the ${name} curated agent (curated-agents/${name}) for the harnesses below.";
+        description = "Older switch for the ${name} curated agent: false is the same as activation = \"off\".";
       };
       replaceBuiltins = lib.mkOption {
         type = lib.types.bool;
@@ -130,7 +152,7 @@ in
         message = "agent-camp.harnesses: unknown harness (known: ${lib.concatMapStringsSep ", " (a: a.bin) harnesses})";
       } {
         # Each would write the same built-in's file.
-        assertion = lib.count (n: cfg.curated-agents.${n}.enable && cfg.curated-agents.${n}.replaceBuiltins) (lib.attrNames curated.agents) <= 1;
+        assertion = lib.count (n: on n && cfg.curated-agents.${n}.replaceBuiltins) (lib.attrNames curated.agents) <= 1;
         message = "agent-camp.curated-agents: replaceBuiltins is on for more than one agent; only one can take a built-in's place.";
       }];
 
@@ -146,9 +168,62 @@ in
       ] ++ map (a: pkgs.${a.pkg}) (lib.filter (a: a.via == "nix" && wants a) harnesses)
         ++ lib.optional cfg.herdr.enable herdr;
 
-      # Curated agents, one file per harness that wants each.
+      # Curated agents, one file per harness that wants each; their delegation
+      # rules where the harness has a user-level file of its own for them; the
+      # session hook where a harness runs it.
       home.file = lib.listToAttrs (map (p: lib.nameValuePair p.path { source = p.src; })
-        (lib.filter (p: !p.copy) curatedFiles));
+        (lib.filter (p: !p.copy) curatedFiles))
+        // lib.mapAttrs' (h: ad: lib.nameValuePair ad.instructions { text = instructionsFor h; })
+          (lib.filterAttrs (h: ad: ad ? instructions && !(ad.instructionsShared or false) && instructionsFor h != "") curated.adapters)
+        // lib.optionalAttrs (hookAdapters != { }) {
+          # AGENT_CAMP_DISABLE_AGENTS="designer,ponytail": a notice per name.
+          ${sessionHook}.source = pkgs.writeShellScript "agent-camp-session-start" ''
+            IFS=', ' read -ra names <<< "''${AGENT_CAMP_DISABLE_AGENTS:-}"
+            for n in "''${names[@]}"; do
+              case "$n" in ""|*[!A-Za-z0-9_.-]*) continue ;; esac
+              echo "agent-camp: AGENT_CAMP_DISABLE_AGENTS switches $n off for this session. Do not delegate to the $n subagent in this session, whatever AGENTS.md or your other instructions say."
+            done
+          '';
+        };
+
+      # The delegation rules in a user-level file the user owns (Codex's
+      # ~/.codex/AGENTS.md): a marked block at its end, rewritten on every
+      # switch and removed when no agent is installed. The rest of the file
+      # stays as it is; a link is left alone.
+      home.activation.curatedInstructions = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
+        awk = "${pkgs.gawk}/bin/awk";
+      in ''
+        begin='<!-- agent-camp curated agents: begin (rewritten on every switch) -->' end='<!-- agent-camp curated agents: end -->'
+        # put_block FILE [RULES]: the block holds RULES' text, or goes.
+        put_block() {
+          local f="$1" want="''${2:-}" cur="" kept new sep=""
+          if [ -L "$f" ]; then
+            [ -z "$want" ] || echo "agent-camp: $f is a link, not adding the curated agents' delegation rules" >&2
+            return 0
+          fi
+          [ ! -f "$f" ] || cur=$(cat "$f")
+          # The file without the block and without trailing blank lines.
+          kept=$(printf '%s\n' "$cur" | ${awk} -v b="$begin" -v e="$end" '
+            $0 == b { s = 1; next } $0 == e { s = 0; next } s { next }
+            /^[[:space:]]*$/ { blank = blank $0 "\n"; next }
+            { printf "%s%s\n", blank, $0; blank = "" }')
+          new="$kept"
+          if [ -n "$want" ]; then
+            [ -z "$kept" ] || sep=$'\n\n'
+            new="$kept$sep$begin"$'\n'"$(cat "$want")"$'\n'"$end"
+          fi
+          [ "$new" != "$cur" ] || return 0
+          if [ -z "$new" ]; then
+            run rm -f "$f"
+          else
+            run mkdir -p "$(dirname "$f")"
+            printf '%s\n' "$new" | run tee "$f" >/dev/null
+          fi
+        }
+        ${lib.concatStrings (lib.mapAttrsToList (h: ad: ''
+          put_block "$HOME/${ad.instructions}" ${lib.optionalString (instructionsFor h != "") (pkgs.writeText "agent-camp-${h}-instructions.md" (instructionsFor h))}
+        '') (lib.filterAttrs (_: ad: ad.instructionsShared or false) curated.adapters))}
+      '');
 
       # The adapters that need a regular file get a copy, read-only like the
       # links. A copy an earlier switch placed and nothing wants now is removed.
@@ -169,29 +244,38 @@ in
         printf '%s\n' $wanted | run tee "$state" >/dev/null
       '');
 
-      # The claude curated agents' rules in ~/.claude/settings.json, which
-      # Claude Code also writes: only the rules this step added are touched.
-      # The last set is kept in state, so a bump or a disable replaces it.
-      home.activation.curatedClaudePermissions = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
+      # Lists in JSON files the harnesses also write: the claude curated agents'
+      # permission rules in ~/.claude/settings.json, and the session hook in
+      # each hook file. Only the entries this step added are touched. The last
+      # set is kept in state, so a bump or a disable replaces it.
+      home.activation.curatedSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] (let
         jq = "${pkgs.jq}/bin/jq";
+        hookEntry = [{ hooks = [{ type = "command"; command = "${config.home.homeDirectory}/${sessionHook}"; timeout = 10; }]; }];
       in ''
-        state="$HOME/.local/state/agent-camp/claude-allow" settings="$HOME/.claude/settings.json"
-        want=${lib.escapeShellArg (builtins.toJSON claudeAllow)}
-        old=$(cat "$state" 2>/dev/null || echo '[]')
-        if [ "$want" != "$old" ] || { [ "$want" != '[]' ] && [ ! -e "$settings" ]; }; then
-          cur='{}'
-          [ ! -s "$settings" ] || cur=$(cat "$settings")
-          if [ -L "$settings" ]; then
-            echo "agent-camp: $settings is a link, not adding the curated agents' rules: $want" >&2
-          elif new=$(printf '%s' "$cur" | ${jq} --argjson old "$old" --argjson want "$want" \
-              '((.permissions.allow // []) - $old) as $k | .permissions.allow = $k + ($want - $k)'); then
-            run mkdir -p "$HOME/.claude" "$(dirname "$state")"
-            printf '%s\n' "$new" | run tee "$settings" >/dev/null
-            printf '%s\n' "$want" | run tee "$state" >/dev/null
-          else
-            echo "agent-camp: $settings is not valid JSON, not adding the curated agents' rules: $want" >&2
+        # merge FILE STATE-NAME PATH WANT: the list at PATH (a jq path array)
+        # keeps its other entries and holds WANT's after them.
+        merge() {
+          local settings="$1" state="$HOME/.local/state/agent-camp/$2" p="$3" want="$4" old cur new
+          old=$(cat "$state" 2>/dev/null || echo '[]')
+          if [ "$want" != "$old" ] || { [ "$want" != '[]' ] && [ ! -e "$settings" ]; }; then
+            cur='{}'
+            [ ! -s "$settings" ] || cur=$(cat "$settings")
+            if [ -L "$settings" ]; then
+              echo "agent-camp: $settings is a link, not adding the curated agents' entries: $want" >&2
+            elif new=$(printf '%s' "$cur" | ${jq} --argjson p "$p" --argjson old "$old" --argjson want "$want" \
+                '((getpath($p) // []) - $old) as $k | setpath($p; $k + ($want - $k))'); then
+              run mkdir -p "$(dirname "$settings")" "$(dirname "$state")"
+              printf '%s\n' "$new" | run tee "$settings" >/dev/null
+              printf '%s\n' "$want" | run tee "$state" >/dev/null
+            else
+              echo "agent-camp: $settings is not valid JSON, not adding the curated agents' entries: $want" >&2
+            fi
           fi
-        fi
+        }
+        merge "$HOME/.claude/settings.json" claude-allow '["permissions","allow"]' ${lib.escapeShellArg (builtins.toJSON claudeAllow)}
+        ${lib.concatStrings (lib.mapAttrsToList (h: ad: ''
+          merge "$HOME/${ad.hooks}" ${h}-session-start '["hooks","SessionStart"]' ${lib.escapeShellArg (builtins.toJSON (lib.optionals (hookAdapters ? ${h}) hookEntry))}
+        '') (lib.filterAttrs (_: ad: ad ? hooks) curated.adapters))}
       '');
 
       # User-scope skills (skill-sources/): nix pins each source, the skills CLI
@@ -258,10 +342,10 @@ in
       # whatever IMPECCABLE_HOME says. Its staleness check writes
       # ~/.impeccable/staleness-check.json unless pointed elsewhere, and its
       # telemetry is off by the maintainer's choice.
-      home.sessionVariables.IMPECCABLE_NO_UPDATE_CHECK = lib.mkIf cfg.curated-agents.designer.enable "1";
-      home.sessionVariables.IMPECCABLE_STALENESS_CACHE = lib.mkIf cfg.curated-agents.designer.enable "$HOME/.cache/impeccable/staleness-check.json";
-      home.sessionVariables.IMPECCABLE_NO_TELEMETRY = lib.mkIf cfg.curated-agents.designer.enable "1";
-      home.sessionVariables.DO_NOT_TRACK = lib.mkIf cfg.curated-agents.designer.enable "1";
+      home.sessionVariables.IMPECCABLE_NO_UPDATE_CHECK = lib.mkIf (on "designer") "1";
+      home.sessionVariables.IMPECCABLE_STALENESS_CACHE = lib.mkIf (on "designer") "$HOME/.cache/impeccable/staleness-check.json";
+      home.sessionVariables.IMPECCABLE_NO_TELEMETRY = lib.mkIf (on "designer") "1";
+      home.sessionVariables.DO_NOT_TRACK = lib.mkIf (on "designer") "1";
       home.sessionPath = [ "$HOME/.bun/bin" "$HOME/.local/share/fnm/aliases/default/bin" ];
 
       # node for the agent CLIs, from fnm, only while fnm has no default yet:
