@@ -36,6 +36,11 @@ It extends ADR 0003 in five places.
   repository's AGENTS.md that switches it off or on, and an environment
   variable that disables it for a session. Session over repository over
   module. Built in #25.
+- **A complete brief is the answer.** Amended 2026-11-02 (#42): the designer
+  writes PRODUCT.md / DESIGN.md from the brief with its inferences marked as
+  assumptions, overriding Impeccable init's approval round; Info needed only
+  when the goal is missing or contradicts the done criteria; the main agent
+  skips the DESIGN.md approval before `build` when it came from the brief.
 
 Also: `replaceBuiltins` may be on for one agent at most; two would write the
 same built-in's file.
