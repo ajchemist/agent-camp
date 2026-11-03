@@ -19,7 +19,9 @@ DESIGN.md. If it is not available, ignore this section.
 - No design to follow (no DESIGN.md, and the brief and existing page do not
   settle it), or a replaced design direction → `direction`
 - Building or changing UI, or adding motion → `build`
-- Checking complex or motion work, after its `build` → `critique`
+- Checking complex or motion work, after its `build`, when a browser can
+  render it → `critique`. Without a browser, the build's check pass is the
+  check: no `critique`.
 
 **Do it yourself** (do not delegate):
 - Copy, one-line style fixes, questions about the design
@@ -37,15 +39,21 @@ DESIGN.md. If it is not available, ignore this section.
   interactive run whose brief left the design open, show the user what
   `direction` wrote, or the DESIGN.md proposals another mode returned, and
   apply what they accept.
+- The browser probe, once, before the first delegation: a browser tool you
+  have, or Playwright the project already installs. Put the result in every
+  delegation message (`browser: <tool or command>` or `browser: none`).
+  Never install a browser, Playwright, Node or any other toolchain yourself,
+  and never tell designer to.
 - A request that conflicts with DESIGN.md: ask the user before the build and
   apply what they accept to DESIGN.md yourself (or through `direction`).
   Never tell `build` or `critique` to edit DESIGN.md.
 
 **The flow**: simple work is one `build`. Complex work: `reference` (when
 there are references) → `direction` (when there is no design to follow) →
-`build` → `critique` (complex or motion work). One critique round, unless it
-finds a floor defect: then back to the same `build` instance with the
-critique file → `critique` again, and stop there; bring remaining FAILs to
+`build` → `critique` (complex or motion work, with a browser). One critique
+round, unless it finds a floor defect: then back to the same `build`
+instance with the critique's findings → the same `critique` instance again,
+and stop there; bring remaining FAILs to
 the user. Taste FAILs are advisory: pass them on, do not loop on them. Put
 "round N of 2" in each critique's delegation message; critique files from
 earlier tasks do not count. If an instance was cut off, delete the temp
@@ -55,7 +63,8 @@ dot-directory it left before the next round.
 - Continue the same `build` instance across its Info needed and fix rounds
   (Claude Code: SendMessage to its agentId; Codex: followup_task), so it keeps
   its route and context.
-- Start every `critique` as a fresh instance. Never ask a `build` instance to critique.
+- Start the first `critique` as a fresh instance and continue it for round 2,
+  so it keeps its reading. Never ask a `build` instance to critique.
 - `reference` and `direction` may be one instance; `build` starts fresh with
   DESIGN.md (or, where the brief allowed no DESIGN.md, `direction`'s Design
   decisions) as its brief.
@@ -63,7 +72,8 @@ dot-directory it left before the next round.
 **In the delegation message, include**: mode / target / goal / done criteria /
 out of scope / for `reference`, the references / what the brief permits, in
 its words (a library it allows is approved; the files it allows bound where
-DESIGN.md and PRODUCT.md may go). The subagent does not see
+DESIGN.md, PRODUCT.md and critique files may go; critique files never go
+among the target's files) / the browser probe's result. The subagent does not see
 this conversation; the message is all it knows. Say what, not how: leave the
 route, technique and file locations to designer.
 

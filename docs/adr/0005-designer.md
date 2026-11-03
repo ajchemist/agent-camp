@@ -48,6 +48,12 @@ It extends ADR 0003 in five places.
   only for complex or motion work, one round unless it finds a floor defect.
   Emil's skills only for motion detail. The main agent never stops to ask
   after any mode on a complete brief or in a non-interactive run.
+- **No blind critique, sliced reading.** Amended 2026-11-03 (#56): `critique`
+  runs only where a browser can render; without one the build's check pass
+  is the check. The main agent probes for a browser once and passes the
+  result on, and never installs a browser or toolchain. Skills are read by
+  the named section or the one GSAP skill needed; critique reads its own
+  digest, and its output stays out of the brief's target files.
 
 Also: `replaceBuiltins` may be on for one agent at most; two would write the
 same built-in's file.
