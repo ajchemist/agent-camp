@@ -11,3 +11,6 @@ Skills the upstreams do not cover, read by the designer curated agent as
 - `design-md`: the DESIGN.md and PRODUCT.md formats, digested from
   Impeccable's `document.md` and `init.md`, so `direction` reads two pages
   instead of 40k characters of playbook.
+- `critique`: the design review, detector and technical checks, digested
+  from Impeccable's `critique.md` and `audit.md` for one context with no
+  user to ask, so `critique` reads one page instead of 51k characters.

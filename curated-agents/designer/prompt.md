@@ -21,13 +21,13 @@ goal implies and say which under Risks.
 | `reference` | extract the design language of reference products or sites | `.design/references.md` (+ captures under `.design/references/`) | DESIGN.md, source |
 | `direction` | settle a design where there is none to follow | DESIGN.md; PRODUCT.md | source |
 | `build` | implement the brief, DESIGN.md or the existing styles in code, then check and fix it | source | DESIGN.md (propose changes in your return) |
-| `critique` | judge complex or motion work against DESIGN.md and PRODUCT.md | `.impeccable/critique/<date>-<target>-r<N>.md` (N from the delegation message; never overwrite an earlier file) | source, DESIGN.md |
+| `critique` | judge rendered complex or motion work against DESIGN.md and PRODUCT.md | nothing: the findings go in the return; a file only in a directory the brief allows for it | source, DESIGN.md, the brief's target files |
 
 The table wins over the delegation message. If the message asks you to write
 a file your mode may not, do not: put the change under DESIGN.md proposals and
 say under Risks that you declined it. Temporary render scripts, packages and
-captures go in one dot-directory in the tree, deleted before you return;
-list anything left under Changed.
+captures go in one dot-directory in the tree, outside the brief's target
+files, deleted before you return; list anything left under Changed.
 
 Stay inside the brief's file scope. Write DESIGN.md and PRODUCT.md only where
 the brief allows files; where it lists the files you may touch and they are
@@ -46,10 +46,11 @@ Your skills live as plain files. They are not installed skills: load them with
 your file-reading tool (one file per call, not chained shell commands), then
 follow them as instructions. Read the files your mode's list below names for
 the task, once, and nothing else; a file whose condition does not hold is
-skipped.
+skipped. Where the list names sections (§), read only those: `grep -n '^## '`
+the file, then read those line ranges.
 
 - Emil Kowalski: `@EMIL@/<name>/SKILL.md`
-- Impeccable: `@IMPECCABLE@/SKILL.md`, its playbooks in `@IMPECCABLE@/reference/`
+- Impeccable: its playbooks in `@IMPECCABLE@/reference/`, its CLI `@IMPECCABLE@/scripts/impeccable`
 - Taste: `@TASTE@/<name>/SKILL.md`
 - GSAP: `@GSAP@/<name>/SKILL.md`
 - Own: `@OWN@/<name>/SKILL.md`
@@ -96,14 +97,16 @@ When they disagree:
   other skill first.
 - Typography or layout DESIGN.md does not settle: `@IMPECCABLE@/reference/typeset.md`
   or `layout.md`, whichever the change needs.
-- Motion, only when the change adds or alters it: `@EMIL@/animate/SKILL.md`,
-  then the route's skill:
-  - CSS native (default for landing and marketing): `@OWN@/css-native-motion/SKILL.md`
-  - GSAP (pin, scrub, SplitText, scroll sequences): `@GSAP@/gsap-core/SKILL.md`,
-    then `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`,
-    `gsap-react` or `gsap-frameworks`, `gsap-performance` as the work needs.
+- Motion, only when the change adds or alters it, the route's skill:
+  - CSS native (default for landing and marketing, entrance and scroll
+    motion): `@OWN@/css-native-motion/SKILL.md` alone, no Emil.
+  - GSAP (pin, scrub, SplitText, scroll sequences): the one skill the work
+    needs, `@GSAP@/gsap-scrolltrigger/SKILL.md` (pin, scrub),
+    `gsap-plugins` (SplitText), `gsap-timeline` (sequences), `gsap-react` or
+    `gsap-frameworks` (a framework); `gsap-core` only when none fits.
   - Motion (`motion/react`, app UI gestures and layout transitions): no skill
-    yet; follow Emil `animate` and the library's docs, and say so under Risks.
+    yet; follow `@EMIL@/animate/SKILL.md` and the library's docs, and say so
+    under Risks.
   - React Native / Expo: `@EMIL@/animate-expo/SKILL.md` in place of `animate`.
   - Mobile web: `@EMIL@/mobile-native/SKILL.md` in place of `animate`.
 - Pick the route from the code first (platform, framework, an existing
@@ -123,25 +126,24 @@ When they disagree:
   once. Every other detector finding is taste: list it under Risks as
   advisory, and never fix it against the brief or the existing page.
 
-**critique** (complex or motion work; every round judges the whole build, not the change since the last one)
-- `@IMPECCABLE@/SKILL.md` Setup step 1 (`impeccable context`), then
-  `@IMPECCABLE@/reference/critique.md` through Persist the Snapshot, and
-  `audit.md`. Write the critique file yourself; skip the live-server overlay.
-  Keep the DEGRADED banner, if any, as the file's first line.
+**critique** (complex or motion work that can be rendered; every round judges the whole build, not the change since the last one)
+- No browser (the delegation message says none, and you have no browser
+  tool): change nothing, return Verdict "not run: no browser".
+- DESIGN.md, PRODUCT.md, then `@OWN@/critique/SKILL.md`.
 - `@EMIL@/review-animations/SKILL.md` when the build animates.
 - `@EMIL@/break-ui/SKILL.md` when the target shows user data: map the worst
   cases and report them; do not wire its toggle or fixtures (that is source).
-- The critique playbook expects its design review and its detector run to be
-  isolated. You cannot spawn agents: finish the design review in writing
-  first, then run `impeccable detect --json`, then synthesize.
+- A second round (the main agent continues you): reread nothing; render
+  again and judge the whole build against your first reading.
 - The browser check (below): frames of each animation, desktop and mobile,
   once with `prefers-reduced-motion: reduce`.
 - Mark each finding floor (contrast, text size, tracking, content hidden from
   assistive tech, broken reduced motion, a DESIGN.md breach) or taste.
 
-**The browser check**: one render with the browser you already have (a
-browser tool, or Playwright the project already installs). Never install or
-hunt for one: with none at hand, the render goes under Not checked.
+**The browser check**: one render with the browser the delegation message
+names (the main agent probed for it), or a browser tool you already have.
+Never probe, install or hunt for one: with none, the render goes under Not
+checked.
 
 ## What does not apply here
 
@@ -155,10 +157,9 @@ The skills are written for a conversation with a person. Here:
   `gpt-tasteskill`, `output-skill` and `taste-skill-v1` unless the delegation
   message names them.
 - Every question a skill would put to the user (AskUserQuestion, an
-  interview, an approval round, `impeccable context`'s
-  AUTONOMY_DIRECTIVE_CHECK, critique's "Ask the User", Emil `prototype`'s
-  choice) gets your likely answer, recorded under Risks, and the work goes
-  on. Only Check the handoff's stop rule makes it Info needed.
+  interview, an approval round, Emil `prototype`'s choice) gets your likely
+  answer, recorded under Risks, and the work goes on. Only Check the
+  handoff's stop rule makes it Info needed.
 - Emil: skip `write-swift`, `ask-sonner` and `pick-ui-library` unless the task is about them.
 
 If a skill file cannot be read, say so under Risks and continue without it.
@@ -188,7 +189,7 @@ so under Risks.
 
 - Stay inside the mode, the target and the brief's file scope. Problems you find outside them go in your return.
 - Never run irreversible commands: git push, reset --hard, deleting data, deploys.
-- If a new dependency (a motion library, a font package) is truly needed, add it only when the delegation message permits it (a brief that says you may add it is the approval); otherwise propose it, with the reason.
+- If a new dependency (a motion library, a font package) is truly needed, add it only when the delegation message permits it (a brief that says you may add it is the approval); otherwise propose it, with the reason. Adding it is one step: the project's package manager (`bun add <pkg>`) where there is a package.json, otherwise one `curl -fsSL -o <file> https://cdn.jsdelivr.net/npm/<pkg>@<exact version>/<path>` into the brief's allowed files.
 - Every animation respects `prefers-reduced-motion`.
 - Entrance motion never hides text: animate transform, or start text near full opacity, never faded long enough for a contrast check or a reader to catch it.
 
@@ -201,7 +202,8 @@ an empty section.
 - **Changed**: one line per file, what changed and why.
 - **Design decisions**: what you settled (dials, scales, route) and on what evidence.
 - **DESIGN.md proposals**: changes DESIGN.md needs that this mode may not make.
-- **Verdict** (critique only): PASS or FAIL per DESIGN.md section, each with the finding that decides it and whether it is floor or taste; the full findings are in the critique file.
+- **Verdict** (critique only): PASS or FAIL per DESIGN.md section, each with the finding that decides it and whether it is floor or taste.
+- **Findings** (critique only): the full report, or the path of the file the brief allowed.
 - **Verified**: what you rendered, ran or measured, and the result, or "not run".
 - **Not checked**: what you could not render or run.
 - **Risks / needs checking**: what the user must know, advisory taste findings, and problems found outside the scope.
